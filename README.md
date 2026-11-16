@@ -1,4 +1,4 @@
-# LeRobot-MuJoCo-SO101
+# SO-101
 
 **SO-101 Robotic Imitation Learning: ACT, Diffusion Policy & SmolVLA**
 
