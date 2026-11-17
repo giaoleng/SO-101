@@ -1618,87 +1618,20 @@ Camera + Robot State
 
 不能直接将全部差异归因于模型架构或语言理解能力。
 
-### 13.2 Experiment A：Multi-Object Target Selection
+### 13.2 单组实验：多物体目标抓取与放置
 
-**Task:** Target-Conditioned Toy Pick-and-Place
+**Task：Target-Conditioned Multi-Object Pick-and-Place**
 
-场景中同时存在多个候选玩具。
+真机只设置**一组核心实验**：在同一桌面场景中放置多个候选玩具和一个收纳盒，每个 Episode 指定一个目标玩具；SO-101 根据任务条件选择目标、抓取并放入收纳盒。其余玩具作为干扰物。
 
-机器人根据当前任务条件选择正确目标，并将其放入收纳盒。
+- **ACT**：输入相机观测、机器人状态和结构化目标类别。
+- **SmolVLA**：输入相机观测、机器人状态和对应目标的自然语言指令。
+- **统一条件**：相同机器人、玩具集合、初始位置方案、复位规则、成功判定与超时上限；两种策略使用各自兼容的条件输入。
+- **评测范围**：同一组实验统计任务成功率、目标选择准确率、抓错物体率，以及必要的抓取/放置失败原因。不单独安排目标切换、指令改写或布局 OOD 实验组。
 
-主要评测：
+每次评测应记录策略、目标物体、Episode 编号、Seed（如适用）、Checkpoint、选择/抓取/放置结果及最终成功判定。实验次数和实际配置应以保存的评测记录为准，不根据汇总百分比反推。
 
-- Task Success Rate。
-- Target Selection Accuracy。
-- Wrong-object Rate。
-- Grasp Success Rate。
-
-该实验用于检验模型是否真正利用任务条件选择操作目标。
-
-### 13.3 Experiment B：Target Switching
-
-保持候选玩具集合不变，仅改变当前需要抓取的目标。
-
-例如：
-
-```text
-Episode 1 → Target A
-Episode 2 → Target C
-Episode 3 → Target B
-Episode 4 → Target D
-```
-
-每个 Episode 独立重置任务与机器人状态。
-
-测试模型能否根据当前目标条件改变操作行为，而不是重复抓取固定位置或某个偏好的物体。
-
-### 13.4 Experiment C：Language Instruction Variation
-
-针对相同目标，使用不同自然语言表达。
-
-例如：
-
-```text
-Pick up the red car.
-```
-
-```text
-Grab the red toy car.
-```
-
-```text
-Put the red car into the box.
-```
-
-需要确保不同表达对应的实际任务目标一致。
-
-该实验主要测试 SmolVLA 对指令措辞变化的适应能力。
-
-评测时区分：
-
-- 目标识别错误。
-- 目标选择正确但抓取失败。
-- 抓取成功但放置失败。
-
-对于 ACT，结构化目标类别不随语言措辞变化，因此不应将该实验直接作为两个模型的同条件语言理解比较。
-
-### 13.5 Experiment D：Object Arrangement Generalization
-
-改变桌面上多个玩具的初始布局。
-
-包括：
-
-- 交换目标与干扰物的位置。
-- 改变目标与干扰物之间的距离。
-- 改变目标物体朝向。
-- 调整候选玩具整体布局。
-- 将目标放置在训练数据未覆盖的可达位置。
-
-测试模型是否能够根据视觉与任务条件确定目标，而不是依赖固定空间位置。
-
-评测场景应保证机器人在物理上能够完成操作。
-
-### 13.6 评测指标
+### 13.3 评测指标
 
 | 指标 | 说明 | 优化方向 |
 |---|---|---|
@@ -1707,9 +1640,6 @@ Put the red car into the box.
 | Wrong-object Rate | 错误抓取非目标玩具的 Episode 比例 | ↓ |
 | Grasp Success Rate | 目标物体成功被抓取的比例 | ↑ |
 | Placement Success Rate | 目标物体成功被放置的比例 | ↑ |
-| Target Switching Success Rate | 目标切换测试中的任务成功率 | ↑ |
-| Layout OOD Success Rate | 未见物体布局下的任务成功率 | ↑ |
-| Instruction Robustness | 不同语言表达下的任务成功率 | ↑ |
 
 其中，目标选择准确率与最终任务成功率需要分别统计。
 
@@ -1720,7 +1650,7 @@ Put the red car into the box.
 - 抓取正确玩具，但放置失败：目标选择正确，任务失败。
 - 正确选择、成功抓取并放置：任务成功。
 
-### 13.7 任务成功判定
+### 13.4 任务成功判定
 
 完整任务成功条件：
 
@@ -1736,7 +1666,7 @@ Put the red car into the box.
 
 如果机器人抓取错误玩具，即使成功放入盒子，最终仍判定为失败。
 
-### 13.8 实验结果
+### 13.5 实验结果
 
 #### Real-world Multi-Object Manipulation
 
@@ -1754,9 +1684,9 @@ ACT 使用结构化目标类别信息。
 
 SmolVLA 使用自然语言指令。
 
-上述为项目维护者确认的已完成真机实验汇总。原始训练日志、模型权重、逐 Episode 评测记录、真机标定和视频保留在私有存储中，未提交至 GitHub；本仓库仅展示指标汇总。具体测试次数和完整运行配置尚未在本 README 披露。
+上述百分比沿用此前项目维护者确认的真机实验汇总，并非依据本次简化后的一组实验设计重新测试得到。尚缺少公开的逐 Episode 评测记录，因而不能独立核验其是否与简化后的协议完全一致。原始训练日志、模型权重和真机标定未公开；本次仅调整实验描述，不重新生成结果或声称完成新评测。
 
-### 13.9 失败类型分析
+### 13.6 失败类型分析
 
 | Failure Type | Description |
 |---|---|
