@@ -13,23 +13,35 @@
 
 ---
 
-## 公开项目参考演示（非本项目实验录像）
+## 公开参考：SO-101 真机失败模式分析
 
-下列动图引自独立的 SO-101 真机模仿学习开源项目，供直观了解 ACT 与 SmolVLA 的执行过程。**这两段录像并非本仓库模型的输出，也不能用于证明下文的仿真或真机成功率。**
+以下失败轨迹来自独立开源项目 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study) 的 SmolVLA 数据研究，**不是本项目 ACT / Diffusion Policy / SmolVLA 的实测 Rollout**。三个视频用于理解常见的策略失效机制，不能当作本项目成功率表格的逐 Episode 证据。
 
-**ACT：单方块抓取与放置**
+### 1. Reach Failure：目标偏移导致抓取失败
 
-![第三方 ACT 真机执行参考](https://raw.githubusercontent.com/IptiharPolat/so101-robot-learning/main/media/act_single_cube_success.gif)
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="第三方 SO-101 偏移目标抓取失败轨迹">
 
-*来源：[IptiharPolat/so101-robot-learning](https://github.com/IptiharPolat/so101-robot-learning/blob/main/media/README.md)，Apache-2.0；原项目的单方块 ACT 示例，经过 2 倍速处理，非本项目实验。*
+原项目将方块相对训练位置移动约 2 英寸，机械臂仍沿接近固定的运动轨迹伸出，停在目标前方，夹爪最终闭合但没有抓住方块。反映出**对物体位置变化的视觉条件适应不足**。
 
-**SmolVLA：语言条件下的双方块操作**
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方 SmolVLA 实验，不是本项目的 OOD 评测录像。*
 
-![第三方 SmolVLA 真机执行参考](https://raw.githubusercontent.com/IptiharPolat/so101-robot-learning/main/media/smolvla_20k_pink_then_cyan.gif)
+### 2. Motion Failure：策略未产生有效动作
 
-*来源：[IptiharPolat/so101-robot-learning](https://github.com/IptiharPolat/so101-robot-learning/blob/main/media/README.md)，Apache-2.0；原作者裁掉了开头停顿并加速展示，非本项目实验。*
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="第三方 SO-101 无有效动作失败轨迹">
 
-**本项目已有的 MuJoCo 脚本专家演示：**[查看视频](media/simulation_demo.mp4)（Mink IK + FSM，不是策略学习结果）。
+原项目随机化数据设置下的某次评测中，机械臂在初始位姿附近小幅抖动，没有形成有效的接近与抓取动作。该现象说明**训练损失下降并不保证闭环动作能正常启动**。
+
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不代表本项目模型发生了同样的故障。*
+
+### 3. Recovery Failure：物体掉落后未能恢复
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="第三方 SO-101 掉落后未恢复失败轨迹">
+
+原项目的恢复数据训练设置下，机械臂抓取后出现两次中途释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明**模仿了掉落动作不等于学会了掉落后的恢复策略**。
+
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不是本项目真机失败轨迹。*
+
+> **分析边界：** 上述三种模式是公开研究中的失败案例，供本项目制定失败分类和诊断流程参考。实际判断本项目模型是否存在这些问题，仍需对应 Checkpoint 的评测录像和日志。完整许可与素材来源见 [外部参考素材说明](docs/EXTERNAL_MEDIA_REFERENCES.md)。
 
 ---
 
@@ -272,7 +284,7 @@ SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练
 
 ### 3.1 SO-101 MuJoCo 仿真演示
 
-[▶ 查看 SO-101 MuJoCo 仿真演示](media/simulation_demo.mp4)
+本仓库保留原有 MuJoCo 脚本专家录像文件 `media/simulation_demo.mp4`，此处不展示成功视频；该录像来自 Mink IK + FSM 专家控制器，不是学习策略的评测结果。
 
 仿真场景包含：
 
