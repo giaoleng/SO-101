@@ -13,6 +13,26 @@
 
 ---
 
+## 公开项目参考演示（非本项目实验录像）
+
+下列动图引自独立的 SO-101 真机模仿学习开源项目，供直观了解 ACT 与 SmolVLA 的执行过程。**这两段录像并非本仓库模型的输出，也不能用于证明下文的仿真或真机成功率。**
+
+**ACT：单方块抓取与放置**
+
+![第三方 ACT 真机执行参考](https://raw.githubusercontent.com/IptiharPolat/so101-robot-learning/main/media/act_single_cube_success.gif)
+
+*来源：[IptiharPolat/so101-robot-learning](https://github.com/IptiharPolat/so101-robot-learning/blob/main/media/README.md)，Apache-2.0；原项目的单方块 ACT 示例，经过 2 倍速处理，非本项目实验。*
+
+**SmolVLA：语言条件下的双方块操作**
+
+![第三方 SmolVLA 真机执行参考](https://raw.githubusercontent.com/IptiharPolat/so101-robot-learning/main/media/smolvla_20k_pink_then_cyan.gif)
+
+*来源：[IptiharPolat/so101-robot-learning](https://github.com/IptiharPolat/so101-robot-learning/blob/main/media/README.md)，Apache-2.0；原作者裁掉了开头停顿并加速展示，非本项目实验。*
+
+**本项目已有的 MuJoCo 脚本专家演示：**[查看视频](media/simulation_demo.mp4)（Mink IK + FSM，不是策略学习结果）。
+
+---
+
 ## 目录
 
 ### 项目概览
@@ -1200,6 +1220,13 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
 上述为项目维护者确认的已完成仿真实验汇总。原始训练日志、模型权重、逐 Episode 评测记录和数据集保留在私有存储中，未提交至 GitHub；本仓库仅展示指标汇总。具体测试 Episode 数量与完整训练配置尚未在本 README 披露。
+
+#### 公开 ACT 训练 Loss 曲线参考（非本项目日志）
+
+![外部 SO-101 MuJoCo ACT 训练 Loss](media/external_refs/act_mujoco_loss_reference.png)
+
+*来源：[rocPAI-Forge/so101-simstudio](https://github.com/rocPAI-Forge/so101-simstudio/blob/main/labs/lab01_pnp/loss_curve_act_mi300x_50k.png)，Apache-2.0；原项目 MI300X 上 ACT 50K-step 训练曲线。**不是本项目 ACT / Diffusion Policy / SmolVLA 的实测 Loss，也不与上表成功率直接对应。***
+
 
 ### 10.7 失败类型分析
 
