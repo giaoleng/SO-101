@@ -7,7 +7,7 @@
 项目包含两个实验场景：
 
 - **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成红色方块抓取放置任务。
-- **Real Robot Manipulation**：在真实 SO-101 机械臂上比较 ACT 和 SmolVLA，根据任务条件从多个玩具中选择目标并完成抓取放置。
+- **Real Robot Manipulation**：在真实 SO-101 机械臂上使用 SmolVLA，根据自然语言任务指令从多个玩具中选择目标并完成抓取放置。
 
 通过统一的实验设置与评测协议，比较不同模仿学习策略的任务成功率、位置泛化能力、目标选择能力及失败类型。
 
@@ -111,9 +111,8 @@ Episode 3:
 Pick up the teddy bear and place it into the box.
 ```
 
-真机实验比较 ACT 与 SmolVLA：
+真机实验使用 SmolVLA：
 
-- **ACT**：接收视觉观测、机器人状态及结构化目标类别信息。
 - **SmolVLA**：接收视觉观测、机器人状态及自然语言指令。
 
 只有正确选择目标、完成抓取并成功放置，才判定当前任务成功。
@@ -130,7 +129,6 @@ ACT 与 Diffusion Policy 主要学习从机器人观测到动作序列的映射�
 
 SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练视觉语言表示与动作生成模块学习机器人操作策略。
 
-真机多目标实验中的 ACT 使用额外的目标条件编码，但仍统一归类为 ACT，不单独作为第四种模型。
 
 ### 1.3 研究问题
 
@@ -214,17 +212,10 @@ SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练
                     Multiple Toys
                           │
                           ▼
-                  Task Specification
+                  Language Instruction
                           │
-              ┌───────────┴───────────┐
-              │                       │
-              ▼                       ▼
-        Target Category       Language Instruction
-              │                       │
-              ▼                       ▼
-             ACT                   SmolVLA
-              │                       │
-              └───────────┬───────────┘
+                          ▼
+                        SmolVLA
                           │
                           ▼
                    Action Prediction
@@ -239,9 +230,9 @@ SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练
                   Real-world Evaluation
 ```
 
-真机实验通过目标类别或自然语言指令指定当前操作对象。
+真机实验通过自然语言指令指定当前操作对象。
 
-两种策略最终输出机器人动作，经安全检查后发送至 SO-101 控制接口。
+SmolVLA 输出机器人动作，经安全检查后发送至 SO-101 控制接口。
 
 ### 2.3 核心功能模块
 
@@ -270,13 +261,42 @@ SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练
 仿真场景包含：
 
 - SO-101 机械臂。
-- 桌面与目标收纳盒。
-- 蓝色、红色、黄色和绿色方块。
+- 桌面与蓝色目标盒子。
+- 红色目标方块。
+- 蓝色、黄色和绿色干扰方块。
 - 用于策略观测的 RGB 相机。
 
-基础任务为从多个颜色方块中抓取蓝色方块，并将其放入收纳盒。
+基础任务为抓取红色方块，并将其放入蓝色盒子。
 
 演示由基于 **Mink Inverse Kinematics + Finite State Machine** 的脚本专家生成，不代表 ACT、Diffusion Policy 或 SmolVLA 的训练结果。
+
+### 3.2 公开第三方 SmolVLA 失败模式参考
+
+以下 GIF 来自独立开源项目 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study) 的 SmolVLA 数据研究。它们用于说明常见失败机制，不是本项目的仿真或真机评测录像。
+
+#### Reach Failure：目标偏移导致抓取失败
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="第三方 SO-101 偏移目标抓取失败轨迹">
+
+原项目将方块相对训练位置移动约 2 英寸，机械臂仍沿接近固定的运动轨迹伸出，停在目标前方，夹爪最终闭合但没有抓住方块。这反映出对物体位置变化的视觉条件适应不足。
+
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方 SmolVLA 实验，不是本项目 OOD 评测录像。*
+
+#### Motion Failure：策略未产生有效动作
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="第三方 SO-101 无有效动作失败轨迹">
+
+原项目随机化数据设置下的某次评测中，机械臂在初始位姿附近小幅抖动，没有形成有效的接近与抓取动作。训练损失下降并不保证闭环动作能够正常启动。
+
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不代表本项目模型发生了同样的故障。*
+
+#### Recovery Failure：物体掉落后未能恢复
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="第三方 SO-101 掉落后未恢复失败轨迹">
+
+原项目的恢复数据训练设置下，机械臂抓取后出现中途释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明模仿掉落动作不等于学会掉落后的恢复策略。
+
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不是本项目真机失败轨迹。*
 
 ---
 
@@ -566,27 +586,28 @@ mujoco_env/y_env.py
 - 执行机器人动作。
 - 更新 MuJoCo 物理状态。
 
-### 6.3 多颜色方块抓取任务
+### 6.3 红色方块抓取与蓝色盒子放置任务
 
 基础任务：
 
 ```text
-Pick up the blue cube and place it into the bin.
+Pick up the red cube and place it into the blue box.
 ```
 
 场景中同时存在：
 
 ```text
-Blue Cube    → Target
-
-Red Cube     → Distractor
+Red Cube     → Target
+Blue Cube    → Distractor
 Yellow Cube  → Distractor
 Green Cube   → Distractor
+
+Blue Box     → Placement Target
 ```
 
-机器人需要抓取指定的蓝色方块，并将其放入收纳盒。
+机器人需要抓取红色方块，并将其放入蓝色盒子。
 
-抓取其他颜色的方块不算任务成功。
+抓取其他颜色的方块，或未能完成放置，都不算任务成功。
 
 该任务用于比较 ACT、Diffusion Policy 和 SmolVLA 在相同多物体干扰场景中的操作能力。
 
@@ -703,7 +724,7 @@ python scripts/collect/batch_collect_data.py \
 
 训练前应检查专家示范是否满足以下条件：
 
-1. 机器人正确抓取蓝色方块。
+1. 机器人正确抓取红色方块。
 2. 夹爪能够稳定夹持并抬起目标。
 3. 目标方块被正确放入收纳盒。
 4. 机器人动作与视频观测同步。
@@ -1007,8 +1028,8 @@ lerobot-train \
 | Robot | SO-101 |
 | Simulator | MuJoCo |
 | Task | Blue Cube Pick-and-Place |
-| Target | Blue Cube |
-| Distractors | Red / Yellow / Green Cubes |
+| Target | Red Cube |
+| Distractors | Blue / Yellow / Green Cubes |
 | Expert Controller | Mink IK + FSM |
 | Models | ACT / DP / SmolVLA |
 | Evaluation | Closed-loop Rollout |
@@ -1113,7 +1134,7 @@ scripts/eval/
 
 #### In-Distribution Evaluation
 
-蓝色方块在训练数据覆盖的位置范围内随机初始化。
+红色方块在训练数据覆盖的位置范围内随机初始化。
 
 测试目标：
 
@@ -1122,7 +1143,7 @@ scripts/eval/
 
 #### Out-of-Distribution Evaluation
 
-蓝色方块在训练数据未覆盖、但机器人能够到达的位置范围内初始化。
+红色方块在训练数据未覆盖、但机器人能够到达的位置范围内初始化。
 
 测试目标：
 
@@ -1151,7 +1172,7 @@ OOD 位置应满足：
 
 其中：
 
-- **CorrectTarget**：抓取正确的蓝色方块。
+- **CorrectTarget**：抓取正确的红色方块。
 - **SuccessfulGrasp**：成功夹住并抬起目标。
 - **SuccessfulPlacement**：成功将目标放入收纳盒。
 
@@ -1200,7 +1221,7 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 #### Simulation Policy Benchmark
 
 **Environment:** SO-101 MuJoCo  
-**Task:** Multi-Object Scene / Blue Cube Pick-and-Place
+**Task:** Red Cube Pick-and-Place / Blue Box Placement
 
 | Metric | ACT | Diffusion Policy | SmolVLA |
 |---|---:|---:|---:|
@@ -1347,19 +1368,7 @@ Correct Target:
 
 ### 11.5 数据集任务条件
 
-不同模型使用不同形式的任务条件。
-
-#### ACT
-
-使用结构化目标类别信息：
-
-```json
-{
-  "target_id": "yellow_duck"
-}
-```
-
-ACT 通过目标条件编码器获取当前需要抓取的目标类别。
+真机实验使用自然语言任务条件。
 
 #### SmolVLA
 
@@ -1384,8 +1393,6 @@ ACT 通过目标条件编码器获取当前需要抓取的目标类别。
 
 实际训练时，任务字段与额外目标条件需要按照 LeRobotDataset 的 Feature Schema 存储和读取。
 
-标准 ACT 不会仅因为数据集中出现 `target_id` 字段就自动使用该信息，因此需要实现对应的输入编码。
-
 ### 11.6 数据集划分
 
 真机训练数据应尽量平衡不同目标玩具的示范数量。
@@ -1402,9 +1409,7 @@ ACT 通过目标条件编码器获取当前需要抓取的目标类别。
 | Layout OOD Test Set | 未见物体布局评测 |
 | Instruction Variation Set | 不同语言表达下的鲁棒性评测 |
 
-语言表达泛化主要针对 SmolVLA。
-
-对于 ACT，目标类别信息与自然语言表达应明确区分。
+语言表达泛化针对 SmolVLA。
 
 ---
 
@@ -1412,47 +1417,11 @@ ACT 通过目标条件编码器获取当前需要抓取的目标类别。
 
 ## 12. 真机策略训练与部署
 
-真机实验比较：
+真机实验使用 SmolVLA。
 
-- ACT
-- SmolVLA
+SmolVLA 使用真实 SO-101 操作任务、目标玩具集合及成功判定条件。
 
-两种模型使用相同的真实 SO-101 操作任务、目标玩具集合及成功判定条件。
-
-### 12.1 ACT 目标条件训练
-
-标准 ACT 主要根据图像与机器人状态预测动作。
-
-在多玩具目标选择任务中，仅有图像和状态可能不足以确定当前应该抓取哪个玩具。
-
-因此，真机实验为 ACT 增加结构化目标类别条件。
-
-模型输入：
-
-```text
-Camera Images
-      +
-Robot State
-      +
-Target Category
-      │
-      ▼
-     ACT
-      │
-      ▼
- Action Chunk
-      │
-      ▼
-SO-101 Controller
-```
-
-目标条件通过编码后与视觉及机器人状态特征结合。
-
-该机制属于 ACT 的任务条件扩展，不单独作为新的模型类别。
-
-训练时应确保不同目标类别具有对应的专家操作轨迹。
-
-### 12.2 SmolVLA 语言条件微调
+### 12.1 SmolVLA 语言条件微调
 
 SmolVLA 使用预训练视觉语言表示和动作生成模块。
 
@@ -1492,7 +1461,7 @@ Pick up the red toy car and place it into the box.
 
 模型根据当前指令选择目标并预测机器人动作。
 
-### 12.3 策略部署接口
+### 12.2 策略部署接口
 
 真机部署相关模块：
 
@@ -1515,7 +1484,7 @@ scripts/real/
 configs/real/so101.yaml
 ```
 
-### 12.4 SO-101 动作执行
+### 12.3 SO-101 动作执行
 
 策略生成的动作需要转换为 SO-101 控制接口可以接收的机器人指令。
 
@@ -1552,7 +1521,7 @@ Camera + Robot State
 - 关节目标位于安全范围内。
 - 控制频率与训练配置匹配。
 
-### 12.5 真机安全控制
+### 12.4 真机安全控制
 
 真机执行前应检查：
 
@@ -1575,7 +1544,7 @@ Camera + Robot State
 
 ## 13. 真机实验设计与结果
 
-本章针对真实 SO-101 多玩具操作任务，评测 ACT 和 SmolVLA 的任务完成能力、目标选择能力和泛化表现。
+本章针对真实 SO-101 多玩具操作任务，评测 SmolVLA 的任务完成能力、目标选择能力和泛化表现。
 
 ### 13.1 统一实验设置
 
@@ -1586,9 +1555,8 @@ Camera + Robot State
 | Task | Target-Conditioned Toy Pick-and-Place |
 | Candidate Objects | Multiple Toys |
 | Target | Varies by Episode |
-| Models | ACT / SmolVLA |
-| ACT Condition | Target Category |
-| SmolVLA Condition | Language Instruction |
+| Model | SmolVLA |
+| Condition | Language Instruction |
 | Evaluation | Closed-loop Execution |
 
 所有模型使用相同的：
@@ -1600,9 +1568,7 @@ Camera + Robot State
 - 任务最大执行时间。
 - 成功判定条件。
 
-由于 ACT 使用目标类别条件、SmolVLA 使用自然语言条件，最终成功率反映的是两种任务条件策略系统的表现。
-
-不能直接将全部差异归因于模型架构或语言理解能力。
+SmolVLA 使用自然语言条件，最终成功率反映的是该策略在真实多玩具任务中的闭环操作表现。
 
 ### 13.2 Experiment A：Multi-Object Target Selection
 
@@ -1665,8 +1631,6 @@ Put the red car into the box.
 - 目标识别错误。
 - 目标选择正确但抓取失败。
 - 抓取成功但放置失败。
-
-对于 ACT，结构化目标类别不随语言措辞变化，因此不应将该实验直接作为两个模型的同条件语言理解比较。
 
 ### 13.5 Experiment D：Object Arrangement Generalization
 
@@ -1731,12 +1695,9 @@ Put the red car into the box.
 
 | Model | Success Rate ↑ | Target Selection ↑ | Wrong-object Rate ↓ |
 |---|---:|---:|---:|
-| ACT | 55% | 81% | 16% |
 | SmolVLA | **60%** | **86%** | **12%** |
 
 真实环境中同时存在多个玩具，每次 Episode 的目标物体根据任务条件变化。
-
-ACT 使用结构化目标类别信息。
 
 SmolVLA 使用自然语言指令。
 
@@ -1870,19 +1831,13 @@ python scripts/hf/upload_hf.py \
 
 对于仿真实验，三种模型应使用相同任务的专家示范数据进行比较。
 
-对于真机实验，ACT 和 SmolVLA 应使用相同目标集合的真实操作示范。
+对于真机实验，SmolVLA 使用真实操作示范，并覆盖相同的目标集合。
 
 ### 15.3 目标条件公平性
 
-标准 ACT 不直接支持任意自然语言指令。
+真机多目标任务中，SmolVLA 使用自然语言指令。
 
-在真机多目标任务中，ACT 使用结构化目标类别条件。
-
-SmolVLA 使用自然语言指令。
-
-因此，两种模型的输入条件形式不同。
-
-总体任务成功率可以用于比较两个操作系统，但不能将成功率差异直接解释为语言理解能力或模型架构的单独优势。
+因此，真机结果主要反映 SmolVLA 在视觉、机器人状态与语言任务条件共同作用下的闭环操作能力。
 
 ### 15.4 泛化类型
 
@@ -1925,7 +1880,7 @@ MuJoCo 仿真与真实 SO-101 环境存在差异，包括：
 - 物体类别。
 - 任务条件。
 
-当前仿真任务使用蓝色方块，真实任务使用多个不同玩具。
+当前仿真任务使用红色方块和蓝色盒子，真实任务使用多个不同玩具。
 
 因此，真实玩具操作不仅涉及仿真与真实环境差异，还涉及操作对象和任务设置的变化。
 
