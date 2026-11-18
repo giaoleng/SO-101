@@ -1,22 +1,25 @@
-SO-101
-SO-101 Robotic Imitation Learning: ACT, Diffusion Policy & SmolVLA
+# SO-101
+## SO-101 Robotic Imitation Learning: ACT, Diffusion Policy & SmolVLA
 
 基于 LeRobot 与 MuJoCo 构建的 SO-101 机器人模仿学习实验平台，覆盖专家示范采集、LeRobotDataset 数据处理、策略训练、仿真闭环评测及真实机器人操作。
-当前任务概览
-本项目包含两个任务设置不同的实验场景，请勿将它们混为同一个评测任务。
-实验场景	当前任务	策略
-MuJoCo 仿真	抓取红色方块，放入蓝色盒子	ACT / Diffusion Policy / SmolVLA
-真实机器人	根据任务条件，从多个玩具中选择目标并完成抓取放置	ACT / SmolVLA
+## 当前任务概览
 
+本项目包含两个任务设置不同的实验场景，请勿将它们混为同一个评测任务。
+| 实验场景 | 当前任务 | 策略 |
+| --- | --- | --- |
+| MuJoCo 仿真 | 抓取红色方块，放入蓝色盒子 | ACT / Diffusion Policy / SmolVLA |
+| 真实机器人 | 根据任务条件，从多个玩具中选择目标并完成抓取放置 | ACT / SmolVLA |
 
 仿真任务的英文指令：
 Pick up the red cube and place it in the blue box.
-实验结果口径
+## 实验结果口径
+
 - 现有蓝色方块任务的历史仿真结果不代表新红色方块 / 蓝色盒子任务的成绩。
 - 旧 Checkpoint 不会因为场景颜色或任务文字修改而自动适配新任务。新任务需要使用对应示范数据重新训练或微调，并进行独立闭环评测。
 - 本 README 展示的 Rovo Labs 成功 / 失败视频来自外部 Hugging Face 数据集，不是本项目训练模型的独立评测录像，也不能据此计算本项目成功率。
 
-目录
+## 目录
+
 - 1. 项目介绍
 - 2. 系统架构
 - 3. 项目演示
@@ -34,10 +37,13 @@ Pick up the red cube and place it in the blue box.
 - 15. 实验复现与注意事项
 - 16. 致谢
 - 17. 许可证
-<a id="overview"></a>
-1. 项目介绍
+---
+
+## 1. 项目介绍
+
 本项目面向低成本机器人操作任务，构建基于视觉观测、机器人状态及任务条件的模仿学习系统。项目使用 SO-101 机械臂，在 MuJoCo 仿真环境与真实机器人环境中研究抓取放置、多物体干扰、目标条件操作及策略泛化能力。
-1.1 MuJoCo 仿真任务
+### 1.1 MuJoCo 仿真任务
+
 当前仿真任务为：
 
 抓取红色方块，放入蓝色盒子。
@@ -53,7 +59,8 @@ Pick up the red cube and place it in the blue box.
 - 多物体干扰下的目标选择、抓取与放置能力。
 - 红色方块初始位置变化下的位置泛化能力。
 - 策略启动、抓取、搬运和放置阶段的失败类型。
-1.2 真实机器人任务
+### 1.2 真实机器人任务
+
 真实环境使用 SO-101 机械臂。桌面同时摆放多个不同玩具，每个 Episode 根据任务条件指定一个目标玩具，其余玩具作为干扰物。
 
 例如：
@@ -69,25 +76,32 @@ Pick up the teddy bear and place it into the box.
 - ACT：接收视觉观测、机器人状态及结构化目标类别信息。
 - SmolVLA：接收视觉观测、机器人状态及自然语言任务指令。
 真机实验沿用其多玩具目标抓取设置；不要将仿真任务的“红色方块 / 蓝色盒子”描述套用到真机实验，除非实际硬件场景也采用该设置。
-1.3 对比模型
-模型	核心方法	训练方式	实验环境
-ACT	Transformer + Action Chunking	监督模仿学习	仿真 + 真机
-Diffusion Policy	Diffusion-based Action Generation	扩散式模仿学习	仿真
-SmolVLA	Vision-Language-Action	预训练模型微调	仿真 + 真机
+### 1.3 对比模型
 
+| 模型 | 核心方法 | 训练方式 | 实验环境 |
+| --- | --- | --- | --- |
+| ACT | Transformer + Action Chunking | 监督模仿学习 | 仿真 + 真机 |
+| Diffusion Policy | Diffusion-based Action Generation | 扩散式模仿学习 | 仿真 |
+| SmolVLA | Vision-Language-Action | 预训练模型微调 | 仿真 + 真机 |
 
 ACT 与 Diffusion Policy 主要学习从机器人观测到动作序列的映射。SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练视觉语言表示与动作生成模块学习机器人操作策略。
 
 真机多目标实验中的 ACT 使用额外的目标条件编码，但仍归类为 ACT，不单独作为第四种模型。
-1.4 研究范围
+### 1.4 研究范围
+
 本项目当前重点关注：
-1. Simulation Policy Benchmark：ACT、Diffusion Policy 和 SmolVLA 在统一 MuJoCo 任务下的闭环表现。
-2. Position Generalization：红色方块出现在训练数据未覆盖的位置时，策略能否完成抓取放置。
-3. Multi-Object Manipulation：真实环境中存在多个候选玩具时，模型能否根据任务条件选择正确目标。
-4. Task-Conditioned Manipulation：ACT 的结构化目标类别条件与 SmolVLA 的自然语言条件如何支持真机目标选择。
+## 1. Simulation Policy Benchmark：ACT、Diffusion Policy 和 SmolVLA 在统一 MuJoCo 任务下的闭环表现。
+
+## 2. Position Generalization：红色方块出现在训练数据未覆盖的位置时，策略能否完成抓取放置。
+
+## 3. Multi-Object Manipulation：真实环境中存在多个候选玩具时，模型能否根据任务条件选择正确目标。
+
+## 4. Task-Conditioned Manipulation：ACT 的结构化目标类别条件与 SmolVLA 的自然语言条件如何支持真机目标选择。
+
 目标切换、语言表达变化和新物体类别泛化属于可扩展研究方向；除非有对应测试记录，不应将它们写成已经完成的独立实验。
-<a id="architecture"></a>
-2. 系统架构
+## 2. 系统架构
+
+```
 项目包含仿真模仿学习系统和真实机器人操作系统。两部分使用相同的 SO-101 机器人类型，但采用不同的任务设置与数据采集流程。
 2.1 MuJoCo 仿真系统
                   SO-101 MuJoCo
@@ -163,24 +177,24 @@ Simulation Evaluation	MuJoCo 闭环评测
 Real Robot Interface	SO-101 状态读取与动作执行
 Task Conditioning	目标类别和语言任务条件
 Performance Analysis	成功率、泛化能力与失败类型分析
+```
 
+## 3. 项目演示
 
-<a id="demo"></a>
-3. 项目演示
-3.1 外部数据集：SmolVLA 成功与失败轨迹
+### 3.1 外部数据集：SmolVLA 成功与失败轨迹
+
 以下两个视频来自 Rovo Labs 的公开数据集 rovolabs/so-arm101-pick-place，使用 SmolVLA 控制器（ACTION_SMOLVLA）和 Front 相机。视频分别对应数据集标注的成功 Episode 与失败 Episode。
 成功示例 — Episode 1005
 标签： episode_success=true
 源视频时间段： 5591.200–5595.733 s（约 4.53 s）
 
-https://github.com/user-attachments/assets/4af91678-6910-4b37-a0b6-3876831b0b19
-
+![](https://github.com/user-attachments/assets/4af91678-6910-4b37-a0b6-3876831b0b19)
 
 失败示例 — Episode 1000
 标签： episode_success=false
 源视频时间段： 5517.733–5534.733 s（17.00 s）
 
-https://github.com/user-attachments/assets/e6c385e4-2ba7-4102-9b13-86e1910ac4ab
+![](https://github.com/user-attachments/assets/e6c385e4-2ba7-4102-9b13-86e1910ac4ab)
 
 数据来源与许可：
 - 数据集：Rovo Labs, SO-ARM101 Pick-and-Place。
@@ -189,13 +203,16 @@ https://github.com/user-attachments/assets/e6c385e4-2ba7-4102-9b13-86e1910ac4ab
 - 控制器：SmolVLA / ACTION_SMOLVLA（annotation.action_source=2）。
 - 摄像头：Front（observation.images.front）。
 - 许可：CC BY 4.0，使用和再分发时保留来源署名及许可说明。
-重要说明： 以上是外部数据集中的真实轨迹样本，不是本项目 ACT、Diffusion Policy 或 SmolVLA Checkpoint 的独立评测录像。成功 / 失败标签仅描述对应数据集 Episode，不能据此计算本项目模型的成功率，也不能作为本项目新任务的模型评测成绩。
+> [!NOTE]
+> **重要说明：** 以上是外部数据集中的真实轨迹样本，不是本项目 ACT、Diffusion Policy 或 SmolVLA Checkpoint 的独立评测录像。成功 / 失败标签仅描述对应数据集 Episode，不能据此计算本项目模型的成功率，也不能作为本项目新任务的模型评测成绩。
 
-3.2 本项目脚本专家演示
+### 3.2 本项目脚本专家演示
+
 仓库中的 media/simulation_demo.mp4 是 Mink IK + FSM 脚本专家生成的历史演示。该视频录制于任务修改之前，不代表当前红色方块 / 蓝色盒子任务，也不是 ACT、Diffusion Policy 或 SmolVLA 的策略评测结果。
 
 新任务的模型演示应使用对应新任务 Checkpoint 独立录制，并注明策略、Checkpoint、测试条件和 Episode 结果。
-3.3 公开第三方失败模式参考
+### 3.3 公开第三方失败模式参考
+
 以下 GIF 来自独立开源项目 Andresg324/so101-vla-data-study 的 SmolVLA 数据研究。它们用于说明常见失败机制，不是本项目的仿真或真机评测录像。
 Reach Failure：目标偏移导致抓取失败
 <img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="第三方 SO-101 偏移目标抓取失败轨迹">原项目将方块相对训练位置移动约 2 英寸，机械臂仍沿接近固定的运动轨迹伸出，停在目标前方，夹爪最终闭合但没有抓住方块。这反映出对物体位置变化的视觉条件适应不足。
@@ -209,32 +226,37 @@ Recovery Failure：物体掉落后未能恢复
 <img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="第三方 SO-101 掉落后未恢复失败轨迹">原项目的恢复数据训练设置下，机械臂抓取后出现中途释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明模仿掉落动作不等于学会掉落后的恢复策略。
 
 来源：原项目失败模式视频与分析，MIT License；第三方实验，不是本项目真机失败轨迹。
-<a id="installation"></a>
-4. 安装与快速开始
-4.1 环境依赖
-组件	用途
-Python	项目运行环境
-MuJoCo	物理仿真
-LeRobot	数据集、策略训练及机器人接口
-PyTorch	深度学习
-Mink	逆运动学
-OpenCV	图像处理
-FFmpeg	视频编码
-Transformers	SmolVLA 模型组件
+## 4. 安装与快速开始
 
+### 4.1 环境依赖
+
+| 组件 | 用途 |
+| --- | --- |
+| Python | 项目运行环境 |
+| MuJoCo | 物理仿真 |
+| LeRobot | 数据集、策略训练及机器人接口 |
+| PyTorch | 深度学习 |
+| Mink | 逆运动学 |
+| OpenCV | 图像处理 |
+| FFmpeg | 视频编码 |
+| Transformers | SmolVLA 模型组件 |
 
 数据处理采用 LeRobotDataset v3.0。不同模型 Checkpoint 可能依赖不同版本的 LeRobot、PyTorch 和 Transformers，应以对应的运行环境配置为准。
-4.2 Docker：区分 CPU 运行与 GPU 训练
-仓库有两套不同用途的镜像，请按任务选择，不要把 CPU 运行镜像当成 GPU 推理镜像。
-Dockerfile	用途	Python / PyTorch	GPU
-Dockerfile.runtime	数据处理、CPU 推理与基础仿真	Python 3.12 / PyTorch CPU	不需要，也不提供 CUDA PyTorch
-Dockerfile	远程 GPU 训练与 GPU 推理环境	Python 3.12 / CUDA 12.4 对应 PyTorch	需要 NVIDIA GPU 与容器运行时
+### 4.2 Docker：区分 CPU 运行与 GPU 训练
 
+仓库有两套不同用途的镜像，请按任务选择，不要把 CPU 运行镜像当成 GPU 推理镜像。
+| Dockerfile | 用途 | Python / PyTorch | GPU |
+| --- | --- | --- | --- |
+| Dockerfile.runtime | 数据处理、CPU 推理与基础仿真 | Python 3.12 / PyTorch CPU | 不需要，也不提供 CUDA PyTorch |
+| Dockerfile | 远程 GPU 训练与 GPU 推理环境 | Python 3.12 / CUDA 12.4 对应 PyTorch | 需要 NVIDIA GPU 与容器运行时 |
 
 从仓库根目录构建：
+```bash
 # CPU 运行镜像
 docker build -t lerobot_mujoco_sim:runtime -f Dockerfile.runtime .
+```
 
+```bash
 # GPU 训练 / 推理镜像
 docker build -t lerobot_mujoco_sim:train -f Dockerfile .
 运行 CPU 镜像（不加 --gpus all）：
@@ -249,29 +271,39 @@ docker run --rm -it \
 进入容器后项目位于 /workspace。MuJoCo viewer、EGL 或 OSMesa 能否使用，还取决于主机图形环境和容器挂载配置。以上命令是环境使用示例，不代表每次修改后都已重新构建或执行实验。
 4.3 Docker Compose
 docker-compose.yml 中 lerobot-runtime 对应 CPU 运行镜像，`lerobot` 对应 GPU 训练镜像的构建配置；Compose 文件本身没有启用 GPU 设备预留。
+```
 
 启动 CPU 服务：
+```bash
 docker compose up -d lerobot-runtime
 docker compose exec lerobot-runtime bash
 cd /workspace
 如需 GPU 训练或评测，建议使用上一节的 docker run --gpus all ...，并在有 GPU 的远程平台运行。不能仅凭 Compose 中设置 NVIDIA 环境变量就认为容器已经获得 GPU。
 4.4 Python 环境（不使用 Docker）
 根目录没有通用 requirements.txt；依赖由两个 Dockerfile 分别安装。`configs/real/requirements.txt` 专用于 SO-101 真机环境，不是仿真通用依赖文件。
+```
 
 本地验证基础 MuJoCo、数据处理或 CPU 推理时，可以参考 Dockerfile.runtime 创建 Python 3.12 虚拟环境：
+```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
+```
 
+```bash
 # CPU 版 PyTorch，与 Dockerfile.runtime 的基础版本对应
 python -m pip install torch==2.7.0 torchvision==0.22.0 \
   --index-url https://download.pytorch.org/whl/cpu
+```
 
+```bash
 python -m pip install "lerobot==0.5.1" "mujoco==3.1.6" \
   numpy Pillow glfw termcolor PyYAML mink matplotlib scipy opencv-python
 以上是参考安装命令，不保证自动覆盖每个模型 Checkpoint 的额外依赖。SmolVLA / 真机推理需核对对应模型与相机、驱动依赖；正式 GPU 训练优先使用项目 GPU Docker 环境或已验证的远程环境。
+```
 
 验证基础依赖：
+```bash
 python -c "import mujoco; print(mujoco.__version__)"
 python -c "import torch; print(torch.cuda.is_available())"
 python -c "import lerobot; print(lerobot.__file__)"
@@ -295,7 +327,9 @@ Diffusion Policy 与 SmolVLA 分别使用：
 bash scripts/train/train_diffusion.sh
 bash scripts/train/finetune_smolvla.sh
 训练脚本中的数据根目录、数据集标识和输出目录应指向新任务数据。运行前检查脚本配置，确认没有复用旧任务的数据或 Checkpoint。
+```
 
+```
 部署前必须确认 Checkpoint 来自红色方块 / 蓝色盒子任务的训练或微调，并核对观测特征、动作语义和处理器配置。旧 Checkpoint 路径存在，不代表其已适配新任务。
 <a id="project-structure"></a>
 5. 项目结构
@@ -375,15 +409,20 @@ tests/	单元测试
 docs/	技术文档
 media/	演示视频与外部数据集样例
 third_party/	第三方机器人模型与资源
+```
 
+---
 
-Part I. MuJoCo Simulation
-<a id="simulation-environment"></a>
-6. SO-101 MuJoCo 仿真环境
-6.1 SO-101 机器人模型
+## Part I. MuJoCo Simulation
+
+## 6. SO-101 MuJoCo 仿真环境
+
+### 6.1 SO-101 机器人模型
+
 本项目的仿真与真实机器人操作均使用 SO-101 机械臂。机器人资源基于 TheRobotStudio/SO-ARM100 项目提供的 SO-101 模型。
 
 主要资源：
+```
 third_party/SO-ARM100/
 asset/so_arm100/SO101/
 asset/scene_so101_y.xml
@@ -406,20 +445,27 @@ mujoco_env/y_env.py
 Pick up the red cube and place it in the blue box.
 场景目标：
 Red Cube     → Target
+```
 
+```
 Blue Cube    → Distractor
 Yellow Cube  → Distractor
 Green Cube   → Distractor
+```
 
+```
 Blue Box     → Placement Target
 机器人必须抓取红色方块，并将其放入蓝色盒子。抓取其他颜色的方块，或未能完成放置，都不算任务成功。
 6.4 成功判定
 任务成功不能仅依据机械臂接触方块或方块短暂进入盒口判断。应依据 MuJoCo 中目标方块与盒体的实际几何和物理状态，检查目标方块是否完整放入蓝色盒子，并满足放置、释放条件。
+```
 
 当前判定逻辑以场景中的盒底、盒壁和目标方块几何为依据；方块应位于盒体有效容纳区域内，并完成抓取后的释放过程。具体几何边界由场景模型决定，不应在 README 中另行维护一套与代码不一致的硬编码阈值。
-6.5 Mink IK + FSM 专家控制器
+### 6.5 Mink IK + FSM 专家控制器
+
 仿真专家控制器采用：
 - Mink Inverse Kinematics：根据末端执行器目标计算关节运动。
+```bash
 - Finite State Machine（FSM）：组织抓取放置任务的执行阶段。
 专家控制器入口：
 controllers/scripted_fsm_controller.py
@@ -516,10 +562,11 @@ Actions	监督学习目标
 Task	任务描述
 Episode Metadata	Episode 相关信息
 Dataset Statistics	归一化统计信息
-
+```
 
 具体字段名称由数据集的 Feature Schema 决定。
-8.2 外部数据集来源
+### 8.2 外部数据集来源
+
 本项目展示的外部成功 / 失败视频来自：
 
 rovolabs/so-arm101-pick-place
@@ -531,7 +578,8 @@ rovolabs/so-arm101-pick-place
 - 外部 SmolVLA Episode 标签不等于本项目模型评测结果。
 - 使用外部数据训练前，必须核对任务定义、相机视角、图像键、关节顺序、动作单位、夹爪语义和归一化方式。
 - 数据集许可为 CC BY 4.0，使用时保留来源和许可说明。
-8.3 外部数据与本项目观测字段的差异
+### 8.3 外部数据与本项目观测字段的差异
+
 外部数据集可能使用以下相机特征键：
 observation.images.front
 observation.images.overhead
@@ -544,7 +592,9 @@ observation.wrist_image
 外部数据的六维绝对关节动作顺序为：
 [elbow_flex, gripper, shoulder_lift, shoulder_pan, wrist_flex, wrist_roll]
 不可未经核对就将动作直接送入本项目部署接口；需要处理关节顺序、单位、夹爪语义及归一化差异。
-8.4 数据格式转换
+### 8.4 数据格式转换
+
+```bash
 对于旧版 LeRobotDataset，可以使用项目中的转换工具：
 python scripts/convert_lerobot_dataset_v21_to_v30_local.py \
   --root data/my_v21_dataset \
@@ -552,8 +602,10 @@ python scripts/convert_lerobot_dataset_v21_to_v30_local.py \
 转换工具基于 LeRobot 官方 v2.1 → v3.0 转换流程，并包含历史数据兼容处理。转换时原始 v2.1 数据会移动至相邻的 _old 目录。正式转换前应检查目标路径及可用磁盘空间。
 8.5 Parquet 兼容处理
 针对部分包含 spawn.block_xyz 字段的历史数据，转换工具支持处理 NumPy Object Vector 与 PyArrow Schema 的兼容问题。
+```
 
 如果不需要执行该修复：
+```bash
 python scripts/convert_lerobot_dataset_v21_to_v30_local.py \
   --root data/my_v21_dataset \
   --repo-id local/my_v21_dataset \
@@ -583,11 +635,14 @@ notebooks/2.visualize_data.ipynb
 <a id="simulation-training"></a>
 9. 仿真策略训练
 MuJoCo 仿真实验使用相同红方块 / 蓝盒子任务的专家示范数据，比较 ACT、Diffusion Policy 和 SmolVLA。模型训练使用 LeRobot 提供的策略实现，并根据 SO-101 的观测和动作空间进行配置。
+```
 
 以下命令为训练入口示例；具体参数需与实际安装的 LeRobot 版本、数据集配置及 Checkpoint 兼容。
-9.1 ACT
+### 9.1 ACT
+
 ACT（Action Chunking with Transformers）使用 Transformer 预测未来一段机器人动作。
 
+```bash
 主要输入：
 Camera Images
       +
@@ -638,10 +693,12 @@ lerobot-train \
 对于包含明显初始静止片段的专家示范，应分析数据预处理是否影响策略启动和动作生成。
 9.3 SmolVLA
 SmolVLA 是视觉语言动作模型，使用视觉语言表示与动作生成模块学习机器人操作策略。
+```
 
 预训练模型：
 lerobot/smolvla_base
 主要输入：
+```
 Camera Images
       +
 Robot State
@@ -674,7 +731,7 @@ lerobot-train \
 ACT	随机初始化	图像、状态	专家动作
 Diffusion Policy	随机初始化	图像、状态	专家动作序列
 SmolVLA	预训练权重	图像、状态、任务指令	专家动作序列
-
+```
 
 为保证实验具有可比性，应记录：
 - 训练示范数量。
@@ -690,8 +747,9 @@ SmolVLA	预训练权重	图像、状态、任务指令	专家动作序列
 不同模型的预训练条件与架构不同，不能仅根据最终成功率将性能差异完全归因于网络结构。
 Checkpoint 兼容性： 旧蓝色方块任务的 Checkpoint 不能默认视为已适配红色方块 / 蓝色盒子任务。应使用新任务数据训练或微调，并通过实际闭环 Episode 验证。
 
-<a id="simulation-evaluation"></a>
-10. MuJoCo 闭环评测与结果
+## 10. MuJoCo 闭环评测与结果
+
+```
 本章介绍 ACT、Diffusion Policy 和 SmolVLA 在 SO-101 MuJoCo 环境中的统一闭环评测方式。新任务评测必须使用红色方块 / 蓝色盒子的场景、数据和成功判定。
 10.1 实验环境与设置
 项目	当前新任务设置
@@ -704,8 +762,9 @@ Placement Target	Blue Box
 Expert Controller	Mink IK + FSM
 Models	ACT / Diffusion Policy / SmolVLA
 Evaluation	Closed-loop Rollout
+```
 
-
+```
 训练阶段使用专家示范数据。评测阶段由策略模型独立生成动作，不再使用脚本专家决定抓取轨迹。
 10.2 统一闭环评测流程
 Environment Reset
@@ -748,7 +807,7 @@ Completion Time	成功 Episode 的平均完成时间	↓
 Initiation Failure Rate	策略未能正常启动操作的比例	↓
 Grasp Failure Rate	已尝试抓取但未能成功抓起目标的比例	↓
 Placement Failure Rate	已抓起目标但未能正确放入蓝盒的比例	↓
-
+```
 
 Success Rate：任务成功次数占全部测试 Episode 的比例。
 
@@ -759,7 +818,8 @@ Completion Time：从 Episode 开始到成功完成任务所用的时间。仿�
 Initiation Failure Rate：策略在规定启动时间内没有产生有效机器人运动的 Episode 比例。启动阈值需根据专家轨迹与控制频率确定。
 
 Grasp Failure Rate：进入抓取阶段后，未能成功抓住并抬起红色目标方块的比例。
-10.4 ID / OOD 测试设置
+### 10.4 ID / OOD 测试设置
+
 为研究策略的位置泛化能力，分别进行 ID 和 OOD 测试。
 In-Distribution Evaluation
 红色方块在训练数据覆盖的位置范围内随机初始化，用于评估策略是否学会基本抓取放置行为，以及能否处理训练分布内的位置变化。
@@ -775,7 +835,8 @@ OOD 位置应满足：
 两组测试应尽可能只改变目标位置，避免同时改变光照、颜色、物体尺寸或物理参数。建议使用相同的测试初始状态集合比较三个模型。
 
 例如，可分别配置 100 个 ID Episode 和 100 个 OOD Episode。该数量属于建议评测协议，不代表已经完成的测试记录。
-10.5 仿真任务成功判定
+### 10.5 仿真任务成功判定
+
 完整任务成功条件：
 
 Success = CorrectTarget ∧ SuccessfulGrasp ∧ SuccessfulPlacement
@@ -785,10 +846,12 @@ Success = CorrectTarget ∧ SuccessfulGrasp ∧ SuccessfulPlacement
 - SuccessfulGrasp：成功夹住并抬起目标。
 - SuccessfulPlacement：成功将目标放入蓝色盒子，并满足环境定义的放置与释放条件。
 三个条件全部满足，才判定当前 Episode 成功。抓取其他颜色方块、目标中途掉落或未能完成放置，均判定为失败。
-10.6 ACT / Diffusion Policy / SmolVLA 统一仿真评测入口
+### 10.6 ACT / Diffusion Policy / SmolVLA 统一仿真评测入口
+
 仓库提供 scripts/eval/eval_mujoco.py，通过相同的 SO-101 MuJoCo 环境、任务定义和 Episode 调度选择三种策略，并记录策略名称、Checkpoint、seed、ID/OOD 分组和推理延迟等信息。该入口仅使用本地 LeRobot Checkpoint 与数据元信息，不连接真机，也不自动下载权重。
 
 先查看参数与目录规划：
+```bash
 python scripts/eval/eval_mujoco.py --policy act \
   --checkpoint /path/to/new_task_act_checkpoint \
   --dataset-root data/red_cube_blue_box \
@@ -808,8 +871,10 @@ python scripts/eval/eval_mujoco.py --policy act \
   --timeout-clock sim \
   --output outputs/eval/act_red_cube_blue_box_id_seed42.jsonl
 将 --policy act 和 --checkpoint 替换为 Diffusion Policy 或 SmolVLA 对应配置，分别保存结果。OOD 评测必须同时传入实际的 --spawn-x/y/z-min/max 分布外边界；仅修改 --split ood 不构成 OOD 评测。
+```
 
 汇总结果：
+```bash
 python scripts/eval/summarize_rollouts.py \
   outputs/eval/act_red_cube_blue_box_id_seed42.jsonl \
   --csv outputs/eval/act_red_cube_blue_box_id_seed42.csv
@@ -828,33 +893,38 @@ Completion Time ↓	1.42 × Expert	1.58 × Expert	1.67 × Expert
 OOD Success Rate ↑	62%	49%	63%
 Initiation Failure Rate ↓	4%	13%	14%
 Grasp Failure Rate ↓	17%	22%	21%
-
+```
 
 Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
 上述为项目维护者此前确认的历史仿真实验汇总。原始训练日志、模型权重、逐 Episode 评测记录和数据集保留在私有存储中，未提交至 GitHub；原始 README 未披露具体测试 Episode 数量与完整训练配置。
 不要将上表引用为红色方块 / 蓝色盒子任务的结果。 新任务需要使用新任务数据和兼容的 Checkpoint 重新评测，完成后再增加独立结果表。
 
-10.8 公开 ACT 训练 Loss 曲线参考（非本项目日志）
+### 10.8 公开 ACT 训练 Loss 曲线参考（非本项目日志）
 
 来源：rocPAI-Forge/so101-simstudio，Apache-2.0；原项目 MI300X 上 ACT 50K-step 训练曲线。该曲线不是本项目 ACT / Diffusion Policy / SmolVLA 的实测 Loss，也不与上面的历史成功率直接对应。
-10.9 失败类型分析
-Failure Type	Description
-Initiation Failure	机器人未正常开始执行操作
-Approach Failure	末端未能正确接近目标
-Grasp Failure	夹爪未能成功抓起红色目标方块
-Transport Failure	搬运过程中目标掉落
-Placement Failure	目标未能正确放入蓝色盒子
-Wrong-object Grasp	错误抓取其他颜色方块
-Timeout	在最大执行时间内未完成任务
+### 10.9 失败类型分析
 
+| Failure Type | Description |
+| --- | --- |
+| Initiation Failure | 机器人未正常开始执行操作 |
+| Approach Failure | 末端未能正确接近目标 |
+| Grasp Failure | 夹爪未能成功抓起红色目标方块 |
+| Transport Failure | 搬运过程中目标掉落 |
+| Placement Failure | 目标未能正确放入蓝色盒子 |
+| Wrong-object Grasp | 错误抓取其他颜色方块 |
+| Timeout | 在最大执行时间内未完成任务 |
 
 评测时记录各 Episode 的执行结果与主要失败原因，用于判断数据覆盖、视觉定位、动作连续性、夹爪控制和执行过程状态变化等问题。
-Part II. Real-world SO-101 Manipulation
-<a id="real-environment"></a>
-11. SO-101 真机实验环境
+---
+
+## Part II. Real-world SO-101 Manipulation
+
+## 11. SO-101 真机实验环境
+
 本章介绍真实 SO-101 机械臂的实验场景、任务条件和数据采集方式。与仿真固定抓取红色方块不同，真实环境需要根据每次 Episode 的任务目标，从多个玩具中选择正确的操作对象。
-11.1 机器人与硬件配置
+### 11.1 机器人与硬件配置
+
 真实机器人使用 SO-101 机械臂，主要组成：
 - SO-101 机械臂。
 - 夹爪。
@@ -864,8 +934,10 @@ Part II. Real-world SO-101 Manipulation
 - 多个待操作玩具。
 - 目标收纳盒。
 真实机器人与 MuJoCo 环境采用相同的机器人类型，但实际关节零点、运动范围、相机参数和接触特性仍需独立校准。
-11.2 多玩具操作场景
+### 11.2 多玩具操作场景
+
 实验场景中同时存在多个不同玩具，例如：
+```
 Scene:
   - Yellow Duck
   - Red Toy Car
@@ -875,6 +947,7 @@ Scene:
 11.3 任务目标与指令设计
 示例：
 Episode 1
+```
 
 Instruction:
   Pick up the yellow duck and place it into the box.
@@ -896,7 +969,8 @@ Instruction:
 Correct Target:
   Teddy Bear
 同一批玩具可以在连续 Episode 中保持不变，只改变当前目标。这样可以测试策略是否根据任务条件执行操作，而不是始终选择某个固定位置或物体。
-11.4 真实机器人数据采集
+### 11.4 真实机器人数据采集
+
 每个 Episode 包含：
 - 多个玩具的视觉观测。
 - 当前目标玩具。
@@ -905,16 +979,20 @@ Correct Target:
 - 机器人动作。
 - Episode 元数据。
 数据应覆盖不同的目标玩具类别、目标初始位置、干扰物位置、目标与干扰物之间的距离及目标切换顺序。
-11.5 数据集任务条件
+### 11.5 数据集任务条件
+
 不同模型使用不同形式的任务条件。
 
 ACT：结构化目标类别
+```json
 {
   "target_id": "yellow_duck"
 }
 ACT 通过目标条件编码器获取当前需要抓取的目标类别。标准 ACT 不会仅因为数据集中出现 target_id 字段就自动使用该信息，需要实现对应的输入编码。
+```
 
 SmolVLA：自然语言任务描述
+```json
 {
   "task": "Pick up the yellow duck and place it into the box."
 }
@@ -932,14 +1010,16 @@ Validation Set	训练过程中的模型选择
 ID Test Set	已见目标与训练分布内布局评测
 Layout OOD Test Set	未见物体布局评测
 Instruction Variation Set	不同语言表达下的鲁棒性评测
-
+```
 
 语言表达泛化主要针对 SmolVLA。对于 ACT，目标类别信息与自然语言表达应明确区分。以上是数据划分设计，不代表所有划分都已经完成独立评测。
-<a id="real-deployment"></a>
-12. 真机策略训练与部署
+## 12. 真机策略训练与部署
+
 真机实验比较 ACT 与 SmolVLA。两种模型使用相同的真实 SO-101 操作任务、目标玩具集合及成功判定条件。
-12.1 ACT 目标条件训练
+### 12.1 ACT 目标条件训练
+
 标准 ACT 主要根据图像与机器人状态预测动作。在多玩具目标选择任务中，仅有图像和状态可能不足以确定当前应该抓取哪个玩具，因此真机实验为 ACT 增加结构化目标类别条件。
+```
 Camera Images
       +
 Robot State
@@ -1043,12 +1123,13 @@ Models	ACT / SmolVLA
 ACT Condition	Target Category
 SmolVLA Condition	Language Instruction
 Evaluation	Closed-loop Execution
-
+```
 
 所有模型使用相同的 SO-101 机械臂、候选玩具集合、目标类别集合、测试布局、任务最大执行时间和成功判定条件。
 
 由于 ACT 使用目标类别条件、SmolVLA 使用自然语言条件，最终成功率反映的是两种任务条件策略系统的表现，不能将全部差异归因于模型架构或语言理解能力。
-13.2 单组实验：多物体目标抓取与放置
+### 13.2 单组实验：多物体目标抓取与放置
+
 Task：Target-Conditioned Multi-Object Pick-and-Place
 
 真机只设置一组核心实验：在同一桌面场景中放置多个候选玩具和一个收纳盒，每个 Episode 指定一个目标玩具；SO-101 根据任务条件选择目标、抓取并放入收纳盒，其余玩具作为干扰物。
@@ -1057,21 +1138,23 @@ Task：Target-Conditioned Multi-Object Pick-and-Place
 - 统一条件：相同机器人、玩具集合、初始位置方案、复位规则、成功判定与超时上限；两种策略使用各自兼容的条件输入。
 - 评测范围：同一组实验统计任务成功率、目标选择准确率、抓错物体率，以及必要的抓取 / 放置失败原因。不单独安排目标切换、指令改写或布局 OOD 实验组。
 每次评测应记录策略、目标物体、Episode 编号、Seed（如适用）、Checkpoint、选择 / 抓取 / 放置结果及最终成功判定。实验次数和实际配置应以保存的评测记录为准，不根据汇总百分比反推。
-13.3 评测指标
-指标	说明	优化方向
-Task Success Rate	完整完成指定目标抓取放置的比例	↑
-Target Selection Accuracy	正确选择当前指定目标的比例	↑
-Wrong-object Rate	错误抓取非目标玩具的 Episode 比例	↓
-Grasp Success Rate	目标物体成功被抓取的比例	↑
-Placement Success Rate	目标物体成功被放置的比例	↑
+### 13.3 评测指标
 
+| 指标 | 说明 | 优化方向 |
+| --- | --- | --- |
+| Task Success Rate | 完整完成指定目标抓取放置的比例 | ↑ |
+| Target Selection Accuracy | 正确选择当前指定目标的比例 | ↑ |
+| Wrong-object Rate | 错误抓取非目标玩具的 Episode 比例 | ↓ |
+| Grasp Success Rate | 目标物体成功被抓取的比例 | ↑ |
+| Placement Success Rate | 目标物体成功被放置的比例 | ↑ |
 
 目标选择准确率与最终任务成功率需要分别统计：
 - 选择正确玩具，但未能抓取：目标选择正确，任务失败。
 - 抓取错误玩具并放入盒子：目标选择错误，任务失败。
 - 抓取正确玩具，但放置失败：目标选择正确，任务失败。
 - 正确选择、成功抓取并放置：任务成功。
-13.4 任务成功判定
+### 13.4 任务成功判定
+
 Success = CorrectTarget ∧ SuccessfulGrasp ∧ SuccessfulPlacement
 
 其中：
@@ -1079,40 +1162,46 @@ Success = CorrectTarget ∧ SuccessfulGrasp ∧ SuccessfulPlacement
 - SuccessfulGrasp：成功抓起目标玩具。
 - SuccessfulPlacement：成功将目标玩具放入指定容器。
 只有上述三个条件全部满足，才判定当前 Episode 成功。抓取错误玩具，即使成功放入盒子，最终仍判定为失败。
-13.5 实验结果
+### 13.5 实验结果
+
 Real-world Multi-Object Manipulation
 Robot: SO-101
 Task: Target-Conditioned Multi-Object Pick-and-Place
-Model	Success Rate ↑	Target Selection ↑	Wrong-object Rate ↓
-ACT	55%	81%	16%
-SmolVLA	60%	86%	12%
-
+| Model | Success Rate ↑ | Target Selection ↑ | Wrong-object Rate ↓ |
+| --- | --- | --- | --- |
+| ACT | 55% | 81% | 16% |
+| SmolVLA | 60% | 86% | 12% |
 
 真实环境中同时存在多个玩具，每次 Episode 的目标物体根据任务条件变化。ACT 使用结构化目标类别信息，SmolVLA 使用自然语言指令。
 结果说明： 上述百分比沿用此前项目维护者确认的真机实验汇总，并非依据本 README 当前整理后的实验描述重新测试得到。尚缺少公开的逐 Episode 评测记录，因而不能独立核验其是否与简化后的协议完全一致。原始训练日志、模型权重和真机标定未公开；本 README 不据此声称完成了新的真机评测。
 
-13.6 失败类型分析
-Failure Type	Description
-Target Selection Failure	选择错误目标
-Initiation Failure	机器人未正常开始执行操作
-Approach Failure	未能准确接近目标
-Grasp Failure	未能成功抓起目标
-Transport Failure	搬运过程中目标掉落
-Placement Failure	目标未能正确放入容器
-Timeout	在规定时间内未完成任务
+### 13.6 失败类型分析
 
+| Failure Type | Description |
+| --- | --- |
+| Target Selection Failure | 选择错误目标 |
+| Initiation Failure | 机器人未正常开始执行操作 |
+| Approach Failure | 未能准确接近目标 |
+| Grasp Failure | 未能成功抓起目标 |
+| Transport Failure | 搬运过程中目标掉落 |
+| Placement Failure | 目标未能正确放入容器 |
+| Timeout | 在规定时间内未完成任务 |
 
 重点区分两类问题：
 - 目标条件相关失败：模型没有根据当前任务条件选择正确玩具。
 - 动作执行相关失败：模型选择正确目标，但因接近、抓取、搬运或放置问题导致任务失败。
-<a id="huggingface"></a>
-14. Hugging Face 数据管理
+## 14. Hugging Face 数据管理
+
 项目支持将 LeRobotDataset 保存在本地，也支持通过 Hugging Face Hub 管理数据集。
-14.1 本地数据存储
+### 14.1 本地数据存储
+
 数据采集时使用：
+```bash
 --offline-local-only
 可以将数据保存在指定本地目录，不执行远程上传。
+```
 
+```bash
 示例：
 data/
 ├── red_cube_blue_box/
@@ -1137,15 +1226,18 @@ python scripts/hf/upload_hf.py \
 上传前应确认数据集格式、隐私设置和许可。
 14.3 外部数据集引用
 外部视频来源：
+```
 
 Rovo Labs — so-arm101-pick-place
 
 该数据集与本项目自己的采集数据分开管理。README 使用的是经过筛选的成功 / 失败 Episode 样例，不代表数据集整体成功率，也不代表本项目模型的评测结果。
-14.4 数据安全
+### 14.4 数据安全
+
 真实机器人操作数据、Checkpoint 和实验视频根据实际权限进行管理。私有数据不应直接提交至公共 Git 仓库。对于较大的视频和模型权重，建议使用独立的数据存储或模型仓库，避免增加 Git 仓库体积。
-<a id="reproducibility"></a>
-15. 实验复现与注意事项
-15.1 实验环境与版本
+## 15. 实验复现与注意事项
+
+### 15.1 实验环境与版本
+
 复现实验应记录：
 - 操作系统。
 - Python 版本。
@@ -1157,7 +1249,8 @@ Rovo Labs — so-arm101-pick-place
 - 模型 Checkpoint。
 - 随机种子。
 不同版本的机器人数据接口和策略配置可能存在差异，应保持训练与推理环境兼容。
-15.2 训练数据一致性
+### 15.2 训练数据一致性
+
 进行模型比较时，应明确记录不同策略使用的：
 - 训练示范数量。
 - 相机观测。
@@ -1167,11 +1260,13 @@ Rovo Labs — so-arm101-pick-place
 - 训练 Steps。
 - 预训练初始化方式。
 对于仿真实验，三种模型应使用相同任务的专家示范数据进行比较。对于真机实验，ACT 和 SmolVLA 应使用相同目标集合的真实操作示范。
-15.3 目标条件公平性
+### 15.3 目标条件公平性
+
 标准 ACT 不直接支持任意自然语言指令。在真机多目标任务中，ACT 使用结构化目标类别条件，SmolVLA 使用自然语言指令。因此，两种模型的输入条件形式不同。
 
 总体任务成功率可以用于比较两个操作系统，但不能将成功率差异直接解释为语言理解能力或模型架构的单独优势。
-15.4 泛化类型
+### 15.4 泛化类型
+
 实验设计中可区分以下泛化设置：
 - Position Generalization：目标在训练未覆盖的位置出现。
 - Target Switching：在已知候选玩具集合中切换当前目标。
@@ -1179,7 +1274,8 @@ Rovo Labs — so-arm101-pick-place
 - Instruction Generalization：使用不同语言表达描述相同任务。
 - Object Generalization：测试训练时未出现的物体类别。
 上述泛化类型具有不同难度，应分别设计评测任务和报告结果。本项目当前仿真 OOD 主要指红色目标方块的位置变化，不等同于新物体类别泛化。未执行的泛化实验不应写成已完成结果。
-15.5 仿真与真实环境差异
+### 15.5 仿真与真实环境差异
+
 MuJoCo 仿真与真实 SO-101 环境存在差异，包括：
 - 相机成像。
 - 光照。
@@ -1190,7 +1286,8 @@ MuJoCo 仿真与真实 SO-101 环境存在差异，包括：
 - 物体类别。
 - 任务条件。
 当前仿真任务使用红色方块和蓝色盒子，真实任务使用多个不同玩具。因此，真实玩具操作不仅涉及仿真与真实环境差异，还涉及操作对象和任务设置的变化，不能将所有性能差异直接解释为纯粹的 Sim-to-Real Gap。
-15.6 评测协议与成功判定
+### 15.6 评测协议与成功判定
+
 模型比较应尽量使用：
 - 相同的测试初始状态集合。
 - 相同的机器人和环境配置。
@@ -1199,16 +1296,23 @@ MuJoCo 仿真与真实 SO-101 环境存在差异，包括：
 - 足够的测试 Episode。
 - 独立于训练数据的测试场景。
 对于真机多目标任务，应平衡不同玩具作为目标的测试次数，同时明确区分目标选择失败和动作执行失败。实验结果需要报告真实测试次数和对应统计方式。
-15.7 结果报告原则
+### 15.7 结果报告原则
+
 README 中的结果应注明：
-1. 对应的任务版本（例如旧蓝色方块任务或当前红色方块 / 蓝色盒子任务）。
-2. 策略名称与 Checkpoint。
-3. 测试 Episode 数量、Seed 和场景设置。
-4. 成功判定标准。
-5. 结果是否来自本项目独立评测，还是外部数据集 / 第三方研究。
-6. 尚未完成或无法核验的项目，不写成已完成结果。
-<a id="acknowledgements"></a>
-16. 致谢
+## 1. 对应的任务版本（例如旧蓝色方块任务或当前红色方块 / 蓝色盒子任务）。
+
+## 2. 策略名称与 Checkpoint。
+
+## 3. 测试 Episode 数量、Seed 和场景设置。
+
+## 4. 成功判定标准。
+
+## 5. 结果是否来自本项目独立评测，还是外部数据集 / 第三方研究。
+
+## 6. 尚未完成或无法核验的项目，不写成已完成结果。
+
+## 16. 致谢
+
 本项目基于以下开源项目及研究工作：
 - LeRobot
 - MuJoCo
@@ -1218,8 +1322,8 @@ README 中的结果应注明：
 - Rovo Labs SO-ARM101 Pick-and-Place Dataset
 - Andresg324/so101-vla-data-study
 同时感谢 ACT（Action Chunking with Transformers）、Diffusion Policy 和 SmolVLA 相关研究工作的作者与维护者。
-<a id="license"></a>
-17. 许可证
+## 17. 许可证
+
 本项目许可证见仓库中的 LICENSE。
 
 第三方代码、机器人模型、数据集及预训练权重遵循各自的许可证。README 中引用的 Rovo Labs 数据集视频遵循 CC BY 4.0；第三方失败模式 GIF 的来源项目标注为 MIT License。使用或再分发第三方素材时，请保留对应来源与许可说明。
