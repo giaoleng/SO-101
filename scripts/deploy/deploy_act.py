@@ -3,7 +3,7 @@
 Roll out a trained ACT policy in the MuJoCo SO-101 pick-and-place environment.
 
 Students should be able to:
-- drop a checkpoint folder on disk (e.g. checkpoints/act_y/)
+- drop a checkpoint folder on disk (e.g. checkpoints/act_red_cube_blue_box/)
 - run this script without editing code
 """
 
@@ -35,24 +35,24 @@ from scripts.eval.act_rollout import JsonlRecorder, run_evaluation
 
 @dataclass
 class DeployConfig:
-    checkpoint: str = str(PROJECT_ROOT / "checkpoints" / "act_y")
-    dataset_root: str = str(PROJECT_ROOT / "data" / "demo_data_so101")
-    dataset_repo_id: str = "so101_pnp"
+    checkpoint: str = str(PROJECT_ROOT / "checkpoints" / "act_red_cube_blue_box")
+    dataset_root: str = str(PROJECT_ROOT / "data" / "red_cube_blue_box")
+    dataset_repo_id: str = "local/so101_red_cube_blue_box"
     xml_path: str = str(PROJECT_ROOT / "asset" / "scene_so101_y.xml")
-    pick_body_name: str = "body_obj_block_2"
+    pick_body_name: str = "body_obj_block_1"
     place_body_name: str = "body_obj_bin"
-    task: str = "Put blue block in the bin"
+    task: str = "Pick up the red cube and place it in the blue box."
     hz: int = 20
     seed: int = 0
     device: str = "auto"
     image_size: int = 256
     spawn_x_min: float = 0.21
-    spawn_x_max: float = 0.22
+    spawn_x_max: float = 0.27
     spawn_y_min: float = 0.04
     spawn_y_max: float = 0.16
     spawn_z_min: float = 0.815
     spawn_z_max: float = 0.815
-    spawn_min_dist: float = 0.01
+    spawn_min_dist: float = 0.04
     spawn_xy_margin: float = 0.0
     spawn_fallback_min_dist: float = 0.1
     num_trials: int = 20

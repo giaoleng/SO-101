@@ -1,12 +1,12 @@
 xml_path: ./asset/scene_so101_y.xml
-checkpoint: ./checkpoints/act_y
-dataset_root: ./data/demo_data_so101
+checkpoint: ./checkpoints/act_red_cube_blue_box
+dataset_root: ./data/red_cube_blue_box
 # Hugging Face repo id for the *dataset* (must be uploaded with `--repo-type dataset`).
-# From your screenshot, this is: `BrianMIR1/EE5108_batch_sim`.
-dataset_repo_id: BrianMIR1/EE5108_batch_sim
-pick_body_name: body_obj_block_2
+# New task dataset; legacy BrianMIR1/EE5108_batch_sim remains a historical source only.
+dataset_repo_id: local/so101_red_cube_blue_box
+pick_body_name: body_obj_block_1
 place_body_name: body_obj_bin
-task: Put blue block in the bin
+task: Pick up the red cube and place it in the blue box.
 hz: 20
 seed: 0
 device: auto
@@ -14,12 +14,12 @@ image_size: 256
 
 # Spawn sampling bounds for deploy resets
 spawn_x_min: 0.21
-spawn_x_max: 0.22
+spawn_x_max: 0.27
 spawn_y_min: 0.04
 spawn_y_max: 0.16
 spawn_z_min: 0.815
 spawn_z_max: 0.815
-spawn_min_dist: 0.01
+spawn_min_dist: 0.04
 spawn_xy_margin: 0.0
 spawn_fallback_min_dist: 0.1
 

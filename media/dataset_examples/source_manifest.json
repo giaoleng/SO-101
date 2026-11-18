@@ -1,0 +1,37 @@
+{
+  "source_dataset": "rovolabs/so-arm101-pick-place",
+  "source_url": "https://huggingface.co/datasets/rovolabs/so-arm101-pick-place",
+  "license": "CC-BY-4.0",
+  "task": "Pick up the red cube and place it in the blue box.",
+  "status": "generated",
+  "examples": [
+    {
+      "output": "smolvla_success.mp4",
+      "episode_index": 1005,
+      "episode_success": true,
+      "annotation.action_source": 2,
+      "controller": "ACTION_SMOLVLA",
+      "source_revision": "74fc3a568fb76d0183da1be38d6bddc31e7d1e9d",
+      "source_video": "videos/observation.images.front/chunk-000/file-000.mp4",
+      "source_time_range_s": [
+        5591.2,
+        5595.733333333334
+      ],
+      "status": "generated"
+    },
+    {
+      "output": "smolvla_failure.mp4",
+      "episode_index": 1000,
+      "episode_success": false,
+      "annotation.action_source": 2,
+      "controller": "ACTION_SMOLVLA",
+      "source_revision": "74fc3a568fb76d0183da1be38d6bddc31e7d1e9d",
+      "source_video": "videos/observation.images.front/chunk-000/file-000.mp4",
+      "source_time_range_s": [
+        5517.733333333334,
+        5534.733333333334
+      ],
+      "status": "generated"
+    }
+  ]
+}

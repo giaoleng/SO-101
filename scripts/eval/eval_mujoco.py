@@ -41,17 +41,17 @@ def parse_args(argv=None):
                    help="侧视图在训练数据中的特征键")
     p.add_argument("--action-semantics", choices=(ACTION_SEMANTICS,), default=None,
                    help="显式确认模型输出为绝对关节弧度+夹爪闭合比例；不支持隐式单位转换")
-    p.add_argument("--task", default="Put blue block in the bin")
+    p.add_argument("--task", default="Pick up the red cube and place it in the blue box.")
     p.add_argument("--xml-path", type=Path, default=ROOT / "asset/scene_so101_y.xml")
-    p.add_argument("--pick-body-name", default="body_obj_block_2")
+    p.add_argument("--pick-body-name", default="body_obj_block_1")
     p.add_argument("--place-body-name", default="body_obj_bin")
     p.add_argument("--spawn-x-min", type=float, default=0.21)
-    p.add_argument("--spawn-x-max", type=float, default=0.22)
+    p.add_argument("--spawn-x-max", type=float, default=0.27)
     p.add_argument("--spawn-y-min", type=float, default=0.04)
     p.add_argument("--spawn-y-max", type=float, default=0.16)
     p.add_argument("--spawn-z-min", type=float, default=0.815)
     p.add_argument("--spawn-z-max", type=float, default=0.815)
-    p.add_argument("--spawn-min-dist", type=float, default=0.01)
+    p.add_argument("--spawn-min-dist", type=float, default=0.04)
     p.add_argument("--spawn-fallback-min-dist", type=float, default=0.1)
     p.add_argument("--spawn-xy-margin", type=float, default=0.0)
     p.add_argument("--num-trials", type=int, default=20)
@@ -78,7 +78,7 @@ def parse_args(argv=None):
         p.error("实际评测必须显式传入 --action-semantics " + ACTION_SEMANTICS)
     if not a.dry_run and a.split == "ood":
         # 标签不能替代分布外布局。至少显式改变一个位置边界。
-        default_bounds = (0.21, 0.22, 0.04, 0.16, 0.815, 0.815)
+        default_bounds = (0.21, 0.27, 0.04, 0.16, 0.815, 0.815)
         requested_bounds = (a.spawn_x_min, a.spawn_x_max, a.spawn_y_min,
                             a.spawn_y_max, a.spawn_z_min, a.spawn_z_max)
         if requested_bounds == default_bounds:

@@ -10,6 +10,7 @@ from mujoco_env.transforms import rpy2r, r2rpy, r2quat, quat2r
 import os
 import copy
 import glfw
+from mujoco_env.task_geometry import bin_placement_geometry
 
 class SimpleEnv:
     def __init__(self, 
@@ -18,8 +19,8 @@ class SimpleEnv:
                 state_type='joint_angle',
                 robot_profile='so101',
                 seed = None,
-                pick_body_name='body_obj_mug_5',
-                place_body_name='body_obj_plate_11',
+                pick_body_name=None,
+                place_body_name=None,
                 spawn_x_range=(0.20, 0.3),
                 spawn_y_range=(0.02, 0.1),
                 spawn_z_range=(0.815, 0.815),
@@ -46,8 +47,8 @@ class SimpleEnv:
         self.env = MuJoCoParserClass(name='Tabletop',rel_xml_path=xml_path)
         self.action_type = action_type
         self.state_type = state_type
-        self.pick_body_name = pick_body_name
-        self.place_body_name = place_body_name
+        self.pick_body_name = pick_body_name or ('body_obj_mug_5' if robot_profile == 'omy' else 'body_obj_block_1')
+        self.place_body_name = place_body_name or ('body_obj_plate_11' if robot_profile == 'omy' else 'body_obj_bin')
         self.spawn_x_range = spawn_x_range
         self.spawn_y_range = spawn_y_range
         self.spawn_z_range = spawn_z_range
@@ -1065,26 +1066,11 @@ class SimpleEnv:
         p_tgt = self.env.get_p_body(self.place_body_name)
 
         if self.success_height_threshold is None:
-            # obj_bin.xml中的 SO100/SO101 箱几何形状：
-            # - inner half-width ~= 0.054 - 0.006 = 0.048 m
-            # - floor top offset   = 0.012 m
-            # - wall top offset    = 0.076 m
-            # 块是obj_blocks.xml中的 25 mm 立方体（半尺寸 0.0125 m）。
-            inner_half_extent = 0.048
-            block_half_size = 0.0125
-            floor_top = p_tgt[2] + 0.012
-            wall_top = p_tgt[2] + 0.076
-
-            dx = abs(p_obj[0] - p_tgt[0])
-            dy = abs(p_obj[1] - p_tgt[1])
-            xy_ok = (dx < (inner_half_extent - 0.003)) and (dy < (inner_half_extent - 0.003))
-
-            # 块必须放置在垃圾箱地板上。  放置一个 25 毫米的立方体
-            # 地板的中心高度为floor_top + block_half_size。
-            expected_floor_contact_center_z = floor_top + block_half_size
-            z_min = expected_floor_contact_center_z - 0.006
-            z_max = expected_floor_contact_center_z + 0.010
-            z_ok = (p_obj[2] > z_min) and (p_obj[2] < z_max)
+            # Read cavity and rotated block extents from the compiled scene.
+            # Check the entire block, including corners, against the inner walls.
+            xy_ok, z_ok, wall_top = bin_placement_geometry(
+                self.env.model, self.env.data, self.pick_body_name, self.place_body_name
+            )
 
             # Task intent is pick-and-place; pushing/rolling directly into the
             # bin 不应终止该剧集。  上方需要有无障碍升降机

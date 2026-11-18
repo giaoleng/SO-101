@@ -1,12 +1,12 @@
 seed: null
-repo_name: so101_pnp
+repo_name: local/so101_red_cube_blue_box
 num_demo: 1
-root: ./data/demo_data_so101
-task_name: Put blue block in the bin
+root: ./data/red_cube_blue_box
+task_name: Pick up the red cube and place it in the blue box.
 xml_path: ./asset/scene_so101_y.xml
 
-# Target object to pick: blue block (see obj_blocks.xml)
-pick_body_name: body_obj_block_2
+# Target object to pick: red cube (see obj_blocks.xml)
+pick_body_name: body_obj_block_1
 place_body_name: body_obj_bin
 
 env_robot_profile: so101
@@ -28,6 +28,6 @@ spawn_y_min: 0.04
 spawn_y_max: 0.16
 spawn_z_min: 0.815
 spawn_z_max: 0.815
-spawn_min_dist: 0.01
+spawn_min_dist: 0.04
 spawn_xy_margin: 0.0
 spawn_fallback_min_dist: 0.1
