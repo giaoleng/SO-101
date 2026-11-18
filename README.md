@@ -23,11 +23,9 @@ https://github.com/user-attachments/assets/912d4b07-6fdc-4b79-84c3-de75a64860ce
 
 | Metric | ACT | Diffusion Policy | SmolVLA |
 |---|---:|---:|---:|
-| **Success Rate ↑** | **82%** | 69% | 77% |
-| Completion Time ↓ | **1.42 × Expert** | 1.58 × Expert | 1.67 × Expert |
-| OOD Success Rate ↑ | 62% | 49% | **63%** |
-| Initiation Failure Rate ↓ | **4%** | 13% | 14% |
-| Grasp Failure Rate ↓ | **17%** | 22% | 21% |
+| **Success Rate ↑** | 89% | 80% | **95%** |
+| OOD Success Rate ↑ | 72% | 62% | **83%** |
+
 
 Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
