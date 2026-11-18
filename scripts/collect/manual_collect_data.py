@@ -35,13 +35,13 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 @dataclass
 class CollectConfig:
     seed: int | None = None
-    repo_name: str = 'so101_pnp'
+    repo_name: str = 'local/so101_red_cube_blue_box'
     num_demo: int = 1
-    root: str = str(PROJECT_ROOT / 'data' / 'demo_data_so101')
-    task_name: str = 'Put blue block in the bin'
+    root: str = str(PROJECT_ROOT / 'data' / 'red_cube_blue_box')
+    task_name: str = 'Pick up the red cube and place it in the blue box.'
     xml_path: str = str(PROJECT_ROOT / 'asset' / 'scene_so101_y.xml')
-    # 要选择的目标对象：蓝色块（obj_blocks.xml中的 body_obj_block_2 ）
-    pick_body_name: str = 'body_obj_block_2'
+    # 要选择的目标对象：红色方块（obj_blocks.xml中的 body_obj_block_1 ）
+    pick_body_name: str = 'body_obj_block_1'
     place_body_name: str = 'body_obj_bin'
     env_robot_profile: str = 'so101'
     offline_local_only: bool = True
@@ -161,7 +161,7 @@ def resolve_robot_scene_defaults(config):
     root_by_profile = {
         'omy': str(PROJECT_ROOT / 'data' / 'demo_data'),
         'so100': str(PROJECT_ROOT / 'data' / 'demo_data_so100'),
-        'so101': str(PROJECT_ROOT / 'data' / 'demo_data_so101'),
+        'so101': str(PROJECT_ROOT / 'data' / 'red_cube_blue_box'),
     }
 
     xml_norm = os.path.normpath(config.xml_path)
@@ -184,7 +184,7 @@ def resolve_robot_scene_defaults(config):
     legacy_root_norms = {
         os.path.normpath(str(PROJECT_ROOT / 'demo_data')),
         os.path.normpath(str(PROJECT_ROOT / 'demo_data_so100')),
-        os.path.normpath(str(PROJECT_ROOT / 'demo_data_so101')),
+        os.path.normpath(str(PROJECT_ROOT / 'red_cube_blue_box')),
     }
     root_norm = os.path.normpath(config.root)
     if root_norm in default_root_norms or root_norm in legacy_root_norms:

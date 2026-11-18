@@ -1,3 +1,7 @@
+> **当前任务更新（2026-11-17）：** 真机参考任务已切换为 SmolVLA 的单方块入杯（Cube → Cup）。目前 `configs/real/so101.yaml` 的新默认值为 SmolVLA + language + cube；硬件开关仍为 `hardware_confirmed: false`，未连接机械臂、未运行新的真机回合。
+>
+> **以下保留历史多玩具/ACT 接口开发记录**，其中的 ACT 命令、`red_car` / `yellow_duck` 示例及旧 checkpoint 地址仅用于追溯，不再代表当前真机默认实验。以 [README 第 11–13 节](../README.md#real-environment) 和最新 YAML 配置为准。
+
 # SO-101 真机部署与评测
 
 > **状态说明（2026-11-09）：** 项目维护者确认 SO-101 真机操作实验已经完成，ACT 与 SmolVLA 的汇总结果见 [README 第 13.5 节](../README.md#135-实验结果)。原始日志、权重、标定与测试视频未上传 GitHub。下文为 **2026-11-08 代码接口补全阶段** 的技术说明和参考配置，记录的是当轮开发与静态检查范围，不能据此判断整个项目目前尚未开展真机实验。

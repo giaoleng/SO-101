@@ -21,26 +21,23 @@ robot:
       height: 480
       fps: 30
 policy:
-  type: act  # act、smolvla或diffusion；必须与checkpoint一致
-  checkpoint: ./checkpoints/real_act/pretrained_model  # 与train_target_act.py输出约定一致
+  type: smolvla  # 真机当前实验仅使用 SmolVLA
+  checkpoint: ./checkpoints/real_smolvla/pretrained_model  # 待提供并核对的本地权重；勿直接执行
   dataset_root: ./data/real_so101
   device: cpu
   # 真机训练和推理必须共用此语义；不自动转换MuJoCo关节弧度。
   action_semantics: so101_degrees_gripper_percent
   processors: saved  # saved:加载checkpoint中的processor；dataset:用本地stats重建
 conditioning:
-  mode: category  # ACT类别条件；SmolVLA改为language
-  feature_key: observation.environment_state
-  target_order: [yellow_duck, red_car, teddy_bear, blue_ball]
+  mode: language  # SmolVLA 使用自然语言指令
+  feature_key: observation.environment_state  # 仅旧类别条件接口需要；language 不注入该特征
+  target_order: [cube]
   targets:
-    yellow_duck: Pick up the yellow duck and place it into the box.
-    red_car: Pick up the red toy car and place it into the box.
-    teddy_bear: Pick up the teddy bear and place it into the box.
-    blue_ball: Pick up the blue ball and place it into the box.
+    cube: Pick up the cube and place it in the cup.
 control:
   fps: 20
-  duration_s: 30
-  max_steps: 600
+  duration_s: 45  # 原失败视频研究参考评测窗口；新任务尚未运行验证
+  max_steps: 900
   inference_timeout_s: 1.0
   max_observation_age_s: 1.2
   stop_file: ./outputs/real/STOP
@@ -72,5 +69,6 @@ logging:
   output: ./outputs/real/deploy.jsonl
 evaluation:
   episodes: 5
-  split: id
+  split: baseline
+  condition: baseline  # baseline / position_shift / no_motion / recovery / color_variation
   output: ./outputs/real/evaluation.jsonl

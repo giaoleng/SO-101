@@ -13,11 +13,30 @@ from scripts.real.evaluate_policy import read_outcome
 class RealInterfaces(unittest.TestCase):
     def setUp(self):
         self.cfg = load_config(ROOT / 'configs/real/so101.yaml')
+        self.category_cfg = {
+            'mode': 'category',
+            'feature_key': 'observation.environment_state',
+            'target_order': ['yellow_duck', 'red_car', 'teddy_bear', 'blue_ball'],
+            'targets': {
+                'yellow_duck': 'Pick up the yellow duck and place it into the box.',
+                'red_car': 'Pick up the red toy car and place it into the box.',
+                'teddy_bear': 'Pick up the teddy bear and place it into the box.',
+                'blue_ball': 'Pick up the blue ball and place it into the box.',
+            },
+        }
         self.control = copy.deepcopy(self.cfg['control'])
         self.control['joint_limits'] = {key: ([-90, 90] if key != 'gripper.pos' else [0, 100]) for key in JOINTS}
 
-    def test_target_vocabulary_and_feature_order(self):
+    def test_default_smolvla_cube_task(self):
+        self.assertEqual(self.cfg['policy']['type'], 'smolvla')
         c = TaskConditioner(self.cfg['conditioning'])
+        self.assertEqual(c.mode, 'language')
+        self.assertEqual(c.task('cube'), 'Pick up the cube and place it in the cup.')
+        self.assertEqual(c.raw_features('cube'), {})
+        self.assertFalse(self.cfg['robot']['hardware_confirmed'])
+
+    def test_target_vocabulary_and_feature_order(self):
+        c = TaskConditioner(self.category_cfg)
         self.assertEqual(c.encode('red_car'), [0., 1., 0., 0.])
         self.assertEqual(c.raw_features('red_car')['target.red_car'], 1.)
         with self.assertRaises(ValueError): c.encode('unknown')
@@ -51,8 +70,17 @@ class RealInterfaces(unittest.TestCase):
         answers = iter(['{"success":true,"grasped":false}', '{"success":false,"grasped":false}'])
         self.assertFalse(read_outcome(lambda prompt: next(answers))['success'])
 
+    def test_cube_recovery_outcome(self):
+        result = read_outcome(lambda _: (
+            '{"success":false,"started":true,"reached":true,"grasped":true,'
+            '"placed":false,"released":false,"dropped":true,'
+            '"regrasp_attempted":true,"regrasped":false,"failure_mode":"recovery"}'
+        ))
+        self.assertTrue(result['dropped'])
+        self.assertEqual(result['failure_mode'], 'recovery')
+
     def test_checkpoint_category_contract(self):
-        c = TaskConditioner(self.cfg['conditioning'])
+        c = TaskConditioner(self.category_cfg)
         feature = {c.feature_key: c.dataset_feature()}
         model = {'input_features': {c.feature_key: {'shape': [4]}}}
         with tempfile.TemporaryDirectory() as tmp:
@@ -64,6 +92,8 @@ class RealInterfaces(unittest.TestCase):
 
     def test_packaged_training_schema_matches_deploy_contract(self):
         cfg = copy.deepcopy(self.cfg)
+        cfg['policy']['type'] = 'act'
+        cfg['conditioning'] = copy.deepcopy(self.category_cfg)
         c = TaskConditioner(cfg['conditioning'])
         with tempfile.TemporaryDirectory() as tmp:
             checkpoint = Path(tmp); cfg['policy']['checkpoint'] = tmp

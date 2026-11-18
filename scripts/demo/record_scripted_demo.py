@@ -34,12 +34,12 @@ env = SimpleEnv(
     state_type="joint_angle",
     robot_profile="so101",
     seed=SEEDS[0],
-    pick_body_name="body_obj_block_2",
+    pick_body_name="body_obj_block_1",
     place_body_name="body_obj_bin",
-    spawn_x_range=(0.21, 0.22),
+    spawn_x_range=(0.21, 0.27),
     spawn_y_range=(0.04, 0.16),
     spawn_z_range=(0.815, 0.815),
-    spawn_min_dist=0.01,
+    spawn_min_dist=0.04,
 )
 
 # 设置可视化视角

@@ -112,8 +112,8 @@ def main():
         # 我们将从存储的关节增量重建绝对关节角度
         # and replay them in joint_angle mode for robustness.
         action_type="joint_angle",
-        # 要选择的目标对象：蓝色块
-        pick_body_name="body_obj_block_2",
+        # 要选择的目标对象：红色方块
+        pick_body_name="body_obj_block_1",
         place_body_name="body_obj_bin",
         spawn_x_range=(0.21, 0.27),
         spawn_y_range=(0.04, 0.16),

@@ -7,7 +7,7 @@
 项目包含两个实验场景：
 
 - **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成红色方块抓取放置任务。
-- **Real Robot Manipulation**：在真实 SO-101 机械臂上使用 SmolVLA，根据自然语言任务指令从多个玩具中选择目标并完成抓取放置。
+- **Real Robot Manipulation**：在真实 SO-101 机械臂上使用 SmolVLA，完成单个方块抓取并放入杯子的任务，分析位置偏移、策略不启动与掉落后恢复。
 
 通过统一的实验设置与评测协议，比较不同模仿学习策略的任务成功率、位置泛化能力、目标选择能力及失败类型。
 
@@ -48,9 +48,11 @@ Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
 上述为项目维护者确认的已完成仿真实验汇总。原始训练日志、模型权重、逐 Episode 评测记录和数据集保留在私有存储中，未提交至 GitHub；本仓库仅展示指标汇总。具体测试 Episode 数量与完整训练配置尚未在本 README 披露。
 
-> **结果说明：**所有统计数值与原 README 保持一致，沿用原有私有实验汇总。项目任务现已调整为红色方块放入蓝色盒子，但仅修改任务描述并不等于已使用新任务重新评测；逐 Episode 记录未在仓库公开。
+> **结果说明：**项目维护者确认上述数值对应当前**红方块 → 蓝盒子**仿真任务；本次更新不修改、不重新计算任何统计值。原始逐 Episode 日志与模型权重尚未在本仓库公开。
 
 ### SmolVLA 失败模式与视频（第三方参考）
+
+**真机参考任务：** `Pick up the cube and place it in the cup.`（方块 → 杯子）。这一任务与仿真的「红色方块 → 蓝色盒子」属于同一类 Pick-and-Place，但具体容器、环境与数据来源不同。
 
 以下 GIF 来自独立开源项目 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study) 的 SmolVLA 数据研究。它们用于说明常见失败机制，不是本项目的仿真或真机评测录像。
 
@@ -66,7 +68,7 @@ Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
 <img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="第三方 SO-101 无有效动作失败轨迹">
 
-原项目随机化数据设置下的某次评测中，机械臂在初始位姿附近小幅抖动，没有形成有效的接近与抓取动作。训练损失下降并不保证闭环动作能够正常启动。
+原项目使用位置随机化示教训练的策略，在绿色方块的某次评测中，机械臂在初始位姿附近小幅抖动，没有形成有效的接近与抓取动作。训练损失下降并不保证闭环动作能够正常启动。
 
 *来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不代表本项目模型发生了同样的故障。*
 
@@ -74,7 +76,7 @@ Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
 <img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="第三方 SO-101 掉落后未恢复失败轨迹">
 
-原项目的恢复数据训练设置下，机械臂抓取后出现中途释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明模仿掉落动作不等于学会掉落后的恢复策略。
+原项目使用恢复示教训练的策略，在某次评测中搬运途中出现两次释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明模仿掉落动作不等于学会掉落后的恢复策略。
 
 *来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不是本项目真机失败轨迹。*
 
@@ -131,9 +133,9 @@ Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
 #### MuJoCo Simulation
 
-仿真环境包含 SO-101 机械臂、收纳盒以及蓝色、红色、黄色和绿色方块。
+仿真环境包含 SO-101 机械臂、蓝色盒子以及红色、蓝色、黄色和绿色方块。
 
-基础任务要求机器人从多个方块中抓取指定的**蓝色方块**，并将其放入收纳盒。
+基础任务要求机器人抓取指定的**红色方块**，并将其放入**蓝色盒子**。
 
 其他颜色方块作为干扰物，不属于当前操作目标。
 
@@ -152,34 +154,21 @@ Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
 #### Real Robot Manipulation
 
-真实环境使用 SO-101 机械臂，桌面同时摆放多个不同玩具。
-
-每次 Episode 指定一个目标玩具，目标物体可以随任务变化，其余玩具作为干扰物。
-
-例如：
+真实 SO-101 采用 **SmolVLA**，执行方块放入杯子（Cube → Cup）任务，指令为：
 
 ```text
-Episode 1:
-Pick up the yellow duck and place it into the box.
-
-Episode 2:
-Pick up the red toy car and place it into the box.
-
-Episode 3:
-Pick up the teddy bear and place it into the box.
+Pick up the cube and place it in the cup.
 ```
 
-真机实验使用 SmolVLA：
+实验重点是方块位置偏移后抓取能力、策略是否启动，以及搬运途中掉落后的重新抓取与恢复。不同颜色方块仅用于独立的外观泛化测试，不再开展多玩具目标类别切换实验。
 
-- **SmolVLA**：接收视觉观测、机器人状态及自然语言指令。
-
-只有正确选择目标、完成抓取并成功放置，才判定当前任务成功。
+首页三段失败 GIF 是 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study) 的第三方真实机器人实验，不能当作本项目已完成实机评测的证据。具体实验设计见第 11–13 节。
 
 ### 1.2 对比模型
 
 | 模型 | 核心方法 | 训练方式 | 实验环境 |
 |---|---|---|---|
-| ACT | Transformer + Action Chunking | 监督模仿学习 | 仿真 + 真机 |
+| ACT | Transformer + Action Chunking | 监督模仿学习 | 仿真 |
 | Diffusion Policy | Diffusion-based Action Generation | 扩散式模仿学习 | 仿真 |
 | SmolVLA | Vision-Language-Action | 预训练模型微调 | 仿真 + 真机 |
 
@@ -200,17 +189,17 @@ SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练
 
 当目标方块出现在训练数据未覆盖的位置时，策略能否继续完成抓取放置？
 
-**Multi-Object Manipulation**
+**Real-world Position Generalization**
 
-真实环境同时存在多个候选玩具时，模型能否根据当前任务条件选择正确目标？
+真机目标方块相对训练起点偏移时，SmolVLA 能否调整接近轨迹并成功抓取？
 
-**Target Switching**
+**Policy Initiation**
 
-当候选玩具集合保持不变、但当前目标发生变化时，模型能否及时调整操作行为？
+在示教位置多样化的条件下，SmolVLA 是否会停留在初始位姿而无法启动有效动作？
 
-**Language Instruction Generalization**
+**Drop Recovery**
 
-当自然语言指令使用不同表达方式描述相同目标时，SmolVLA 能否保持稳定的目标选择与操作能力？
+方块在搬运途中掉落后，SmolVLA 能否再次抓取并完成入杯？
 
 ---
 
@@ -231,7 +220,7 @@ SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练
               Multi-Object Scene
                         │
                         ▼
-             Blue Cube Pick-and-Place
+              Red Cube → Blue Box
                         │
                         ▼
                 Expert Controller
@@ -264,33 +253,33 @@ SmolVLA 在视觉和机器人状态基础上引入语言条件，利用预训练
 ### 2.2 真实机器人系统
 
 ```text
-                   SO-101 Real Robot
-                          │
-                          ▼
-                    Multiple Toys
-                          │
-                          ▼
-                  Language Instruction
-                          │
-                          ▼
-                        SmolVLA
-                          │
-                          ▼
-                   Action Prediction
-                          │
-                          ▼
-                   SO-101 Controller
-                          │
-                          ▼
-                  Target Pick-and-Place
-                          │
-                          ▼
-                  Real-world Evaluation
+                  SO-101 Real Robot
+                         │
+                         ▼
+                 Single Cube + Cup
+                         │
+                         ▼
+                 Camera + Joint State
+                         │
+                         ▼
+                Language Instruction
+                         │
+                         ▼
+                       SmolVLA
+                         │
+                         ▼
+                 Action Prediction
+                         │
+                         ▼
+                 SO-101 Controller
+                         │
+                         ▼
+                 Closed-loop Rollout
+                         │
+              Reach / No Motion / Recovery
 ```
 
-真机实验通过自然语言指令指定当前操作对象。
-
-SmolVLA 输出机器人动作，经安全检查后发送至 SO-101 控制接口。
+真机通过统一的方块入杯自然语言指令驱动 SmolVLA；训练和测试分别检查接近目标、启动行为及掉落恢复，机器人动作必须经过安全检查后下发。
 
 ### 2.3 核心功能模块
 
@@ -303,7 +292,7 @@ SmolVLA 输出机器人动作，经安全检查后发送至 SO-101 控制接口�
 | Policy Training | ACT、Diffusion Policy 和 SmolVLA 训练 |
 | Simulation Evaluation | MuJoCo 闭环评测 |
 | Real Robot Interface | SO-101 状态读取与动作执行 |
-| Task Conditioning | 目标类别和语言任务条件 |
+| Task Conditioning | 仿真任务描述、真机方块入杯语言指令 |
 | Performance Analysis | 成功率、泛化能力与失败类型分析 |
 
 ---
@@ -1287,149 +1276,60 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 ## 11. SO-101 真机实验环境
 
-本章介绍真实 SO-101 机械臂的实验场景、任务条件和数据采集方式。
+**任务：使用 SmolVLA 控制 SO-101 机械臂抓起桌面方块并放入杯子（Cube → Cup）。** 与仿真红方块→蓝盒子任务同属抓取放置，但真机实验的放置容器是杯子。以下条件以首页 [第三方失败模式视频](#highlights) 为参照设计，并不代表本仓库已经完成这些新条件的真机实测。
 
-与仿真固定抓取蓝色方块不同，真实环境需要根据每次 Episode 的任务目标，从多个玩具中选择正确的操作对象。
+### 11.1 实验装置
 
-### 11.1 机器人与硬件配置
+- SO-101 真机及夹爪、桌面方块、固定位置的杯子。
+- 俯视/前视相机和腕部相机及关节观测；训练、推理必须使用相同相机特征名和动作语义。
+- 稳定光照、可标记的方块起点、可复位的机器人初始位姿与物理急停。
+- 原研究使用两路 640×480 @ 30 FPS 摄像头，这只是第三方设备配置参考，不能代替本项目的实际标定记录。
 
-真实机器人使用 **SO-101 机械臂**。
+### 11.2 基线任务与示教
 
-主要组成：
-
-- SO-101 机械臂。
-- 夹爪。
-- RGB 相机。
-- 机器人控制接口。
-- 桌面操作场景。
-- 多个待操作玩具。
-- 目标收纳盒。
-
-真实机器人与 MuJoCo 环境采用相同的机器人类型，但实际关节零点、运动范围、相机参数和接触特性仍需独立校准。
-
-### 11.2 多玩具操作场景
-
-实验场景中同时存在多个不同玩具。
-
-例如：
+统一自然语言任务指令：
 
 ```text
-Scene:
-  - Yellow Duck
-  - Red Toy Car
-  - Teddy Bear
-  - Blue Ball
+Pick up the cube and place it in the cup.
 ```
 
-每个 Episode 指定一个需要抓取的玩具。
+每段示教包含接近、抓取、抬起、搬运、放入杯子及释放动作。基线固定方块起点与杯子位置；物体颜色或起点改变时必须在数据集中明确标记，不能与基线数据混报。
 
-其余玩具作为干扰物。
+### 11.3 与三段失败视频对应的实验条件
 
-机器人不仅需要完成抓取放置，还需要根据当前任务条件正确选择目标。
+| 条件 | 核心变化 | 观察现象 |
+|---|---|---|
+| Clean / ID | 方块位于示教位置，正常放入杯子 | 标准任务完成情况 |
+| Reach / Position Shift | 方块相对基线**向机器人方向偏移 2 英寸（5.08 cm）**，相机与杯子位置固定 | 是否仍在旧位置闭合夹爪、发生抓空 |
+| No Motion | 位置随机化示教策略，在新回合从相同机器人初态执行 | 是否停留初态、小幅抖动而不接近方块 |
+| Recovery | 示教中包含搬运中释放、重新抓取、继续入杯的完整恢复序列 | 掉落后是否再次抓取并最终入杯 |
+| Color Variation（可选） | 改变方块颜色，保持任务文本及杯子不变 | 未见颜色下是否完成抓取 |
 
-### 11.3 任务目标与指令设计
+源项目 No Motion GIF 对应位置随机化策略在绿色方块条件下的一次回合，不等于“绿色方块必然造成不运动”。三段 GIF 分别来自不同示教条件，**不是本项目自己的真机录像**。
 
-例如：
+### 11.4 数据采集与任务条件
 
-```text
-Episode 1
-
-Instruction:
-  Pick up the yellow duck and place it into the box.
-
-Correct Target:
-  Yellow Duck
-```
-
-```text
-Episode 2
-
-Instruction:
-  Pick up the red toy car and place it into the box.
-
-Correct Target:
-  Red Toy Car
-```
-
-```text
-Episode 3
-
-Instruction:
-  Pick up the teddy bear and place it into the box.
-
-Correct Target:
-  Teddy Bear
-```
-
-同一批玩具可以在连续 Episode 中保持不变，只改变当前目标。
-
-这样可以测试策略是否根据任务条件执行操作，而不是始终选择某个固定位置或物体。
-
-### 11.4 真实机器人数据采集
-
-真实机器人通过示范数据学习多玩具目标选择与抓取放置。
-
-每个 Episode 包含：
-
-- 多个玩具的视觉观测。
-- 当前目标玩具。
-- 任务指令。
-- SO-101 机器人状态。
-- 机器人动作。
-- Episode 元数据。
-
-数据应覆盖不同的：
-
-- 目标玩具类别。
-- 目标初始位置。
-- 干扰物位置。
-- 目标与干扰物之间的距离。
-- 目标切换顺序。
-
-### 11.5 数据集任务条件
-
-真机实验使用自然语言任务条件。
-
-#### SmolVLA
-
-使用自然语言任务描述：
+仅采集 Cube → Cup 任务的相机图像、关节状态、动作和任务指令。对于 Clean、Position-randomized、Recovery（可选 Color-varied）分别保存数据与 Checkpoint，并记录方块位置、数据采集条件和回合标签。
 
 ```json
 {
-  "task": "Pick up the yellow duck and place it into the box."
+  "task": "Pick up the cube and place it in the cup."
 }
 ```
 
-也可以在逻辑记录中同时保留：
+参考研究每种条件有 50 段示教，Recovery 中 20/50 段含故意释放及后续恢复；这些是**第三方研究的设定**，不应称为本项目已采集的数据。
 
-```json
-{
-  "target_id": "yellow_duck",
-  "task": "Pick up the yellow duck and place it into the box."
-}
-```
+### 11.5 数据集划分
 
-上述 JSON 仅展示逻辑任务信息。
-
-实际训练时，任务字段与额外目标条件需要按照 LeRobotDataset 的 Feature Schema 存储和读取。
-
-### 11.6 数据集划分
-
-真机训练数据应尽量平衡不同目标玩具的示范数量。
-
-同时避免某个目标始终出现在同一位置，以减少模型通过位置或出现频率猜测目标的可能性。
-
-数据划分包括：
-
-| Dataset Split | 主要用途 |
+| Split | 评测目的 |
 |---|---|
-| Training Set | 模型训练与微调 |
-| Validation Set | 训练过程中的模型选择 |
-| ID Test Set | 已见目标与训练分布内布局评测 |
-| Layout OOD Test Set | 未见物体布局评测 |
-| Instruction Variation Set | 不同语言表达下的鲁棒性评测 |
+| `baseline` | 固定示教位置下的入杯成功率 |
+| `position_shift` | 目标偏移后是否仍能到达并抓起方块 |
+| `no_motion` | 统计初态附近停滞或仅小幅抖动 |
+| `recovery` | 掉落后是否尝试并成功重新抓取 |
+| `color_variation` | 颜色泛化，独立于前三组诊断 |
 
-语言表达泛化针对 SmolVLA。
+训练/测试应独立，并固定复位条件、摄像头与超时上限。
 
 ---
 
@@ -1437,126 +1337,46 @@ Correct Target:
 
 ## 12. 真机策略训练与部署
 
-真机实验使用 SmolVLA。
+真机实验**只使用 SmolVLA**，不同条件对比的是相同架构在不同示教策略下的行为。
 
-SmolVLA 使用真实 SO-101 操作任务、目标玩具集合及成功判定条件。
-
-### 12.1 SmolVLA 语言条件微调
-
-SmolVLA 使用预训练视觉语言表示和动作生成模块。
-
-真机输入：
+### 12.1 SmolVLA 方块入杯
 
 ```text
-Camera Images
-      +
-Robot State
-      +
-Language Instruction
-      │
-      ▼
-    SmolVLA
-      │
-      ▼
-  Action Expert
-      │
-      ▼
-  Action Chunk
-      │
-      ▼
-SO-101 Controller
+Overhead/Front Camera + Wrist Camera + Robot State
+                        +
+     "Pick up the cube and place it in the cup."
+                        │
+                        ▼
+                      SmolVLA
+                        │
+                        ▼
+                Action Chunk → SO-101
 ```
 
-示例指令：
+需使用真实 SO-101 标定、与训练特征一致的预处理器/动作处理器及对应的本地 SmolVLA Checkpoint。**本次只更新仓库代码与参考配置，不训练模型，也不声称已完成新的真机评测。**
 
-```text
-Pick up the yellow duck and place it into the box.
-```
-
-```text
-Pick up the red toy car and place it into the box.
-```
-
-微调数据应包含不同目标玩具对应的任务指令及操作示范。
-
-模型根据当前指令选择目标并预测机器人动作。
-
-### 12.2 策略部署接口
-
-真机部署相关模块：
-
-```text
-scripts/real/
-├── deploy_policy.py
-├── evaluate_policy.py
-└── task_conditioning.py
-```
-
-其中：
-
-- `deploy_policy.py`：策略加载与机器人动作执行。
-- `evaluate_policy.py`：真机 Episode 执行与评测。
-- `task_conditioning.py`：目标类别或任务条件处理。
-
-机器人配置：
+### 12.2 已提供的真机接口
 
 ```text
 configs/real/so101.yaml
+scripts/real/deploy_policy.py
+scripts/real/evaluate_policy.py
+scripts/real/task_conditioning.py
 ```
 
-### 12.3 SO-101 动作执行
+默认配置改为 SmolVLA、`language` 模式、单个 `cube` 目标和杯子任务文本。参考配置仍保留 `hardware_confirmed: false`，Checkpoint 路径是占位符，不能把这些改动理解为已连接真机或通过实测。
 
-策略生成的动作需要转换为 SO-101 控制接口可以接收的机器人指令。
+现有入口仅在显式指定 `--execute` 并通过实际硬件/权重/安全检查后才会运行；若现在没有时间或硬件，**不需要运行**。原有 ACT 类别条件工具保留为历史代码，不作为当前真机实验入口。
 
-执行流程：
+### 12.3 回合记录与失败标签
 
-```text
-Camera + Robot State
-          │
-          ▼
-     Policy Inference
-          │
-          ▼
-      Action Chunk
-          │
-          ▼
-    Action Processing
-          │
-          ▼
-   SO-101 Joint Commands
-          │
-          ▼
-    Robot Execution
-          │
-          ▼
-     New Observation
-```
+评测时使用 `--condition` 选择 `baseline`、`position_shift`、`no_motion` 或 `recovery`，默认配置为 `baseline`。实际结果仍需要操作者确认，不会把机械臂移动或运行结束自动判定为成功。
 
-动作处理需要保证：
+可选结果字段包括 `started`、`reached`、`grasped`、`placed`、`released`、`dropped`、`regrasp_attempted`、`regrasped`、`failure_mode`；这使得 No Motion、抓空与恢复失败可以分别记录，而非仅保存一个总成功标签。
 
-- 关节名称与顺序正确。
-- 动作单位正确。
-- 夹爪映射正确。
-- 动作反归一化正确。
-- 关节目标位于安全范围内。
-- 控制频率与训练配置匹配。
+### 12.4 安全与兼容性
 
-### 12.4 真机安全控制
-
-真机执行前应检查：
-
-- 关节校准。
-- 关节运动方向。
-- 夹爪开合范围。
-- 相机配置。
-- 动作归一化与反归一化。
-- 关节位置与速度限制。
-- 机器人工作空间。
-- 动作执行周期。
-- 推理超时处理。
-- 紧急停止机制。
-
-所有策略动作必须经过安全性与合法性检查后才能下发给真实机器人。
+真机动作使用实际校准的五个关节角度及夹爪百分比，不可直接混用 MuJoCo 的关节弧度或末端位姿。必须核对相机键、模型动作维度、夹爪开合方向、工作空间和急停。参考研究使用 45 秒评测窗口；本仓库配置中也作为**待核验参考设置**，没有运行验证。
 
 ---
 
@@ -1564,188 +1384,81 @@ Camera + Robot State
 
 ## 13. 真机实验设计与结果
 
-本章针对真实 SO-101 多玩具操作任务，评测 SmolVLA 的任务完成能力、目标选择能力和泛化表现。
-
-### 13.1 统一实验设置
+### 13.1 当前评测任务
 
 | 项目 | 实验设置 |
 |---|---|
-| Robot | SO-101 |
-| Environment | Real-world Tabletop |
-| Task | Target-Conditioned Toy Pick-and-Place |
-| Candidate Objects | Multiple Toys |
-| Target | Varies by Episode |
+| Robot | SO-101 real robot |
 | Model | SmolVLA |
-| Condition | Language Instruction |
-| Evaluation | Closed-loop Execution |
+| Task | Cube Pick-and-Place into Cup |
+| Instruction | `Pick up the cube and place it in the cup.` |
+| Target | 单个方块（颜色变化单独评测） |
+| Destination | Cup（杯子） |
+| Inputs | 双路 RGB、机器人状态、语言指令 |
+| Conditions | Baseline / Position Shift / No Motion / Recovery |
+| Current Status | 新条件的本项目真机逐 Episode 数据尚未在此仓库公开 |
 
-所有模型使用相同的：
+### 13.2 Baseline：标准抓取放置
 
-- SO-101 机械臂。
-- 候选玩具集合。
-- 目标类别集合。
-- 测试布局。
-- 任务最大执行时间。
-- 成功判定条件。
+在训练覆盖的固定起点抓起方块，移至杯子上方并释放。检查有效启动、抓取、入杯成功和完成时间。
 
-SmolVLA 使用自然语言条件，最终成功率反映的是该策略在真实多玩具任务中的闭环操作表现。
+### 13.3 Reach Failure：位置偏移抓空
 
-### 13.2 Experiment A：Multi-Object Target Selection
+将方块向机械臂方向移动约 2 英寸（5.08 cm），记录末端是否到达目标和夹爪是否真正抓住方块。目标方位估计与最终抓取成功必须分别统计。
 
-**Task:** Target-Conditioned Toy Pick-and-Place
+### 13.4 No Motion：策略未启动
 
-场景中同时存在多个候选玩具。
+记录执行初期是否出现有效位姿变化，区分短暂等待、初态抖动与真正向方块接近。该失败现象用于诊断位置随机化策略的执行稳定性，而不是简单归因于方块颜色。
 
-机器人根据当前任务条件选择正确目标，并将其放入收纳盒。
+### 13.5 Recovery Failure：掉落后未恢复
 
-主要评测：
-
-- Task Success Rate。
-- Target Selection Accuracy。
-- Wrong-object Rate。
-- Grasp Success Rate。
-
-该实验用于检验模型是否真正利用任务条件选择操作目标。
-
-### 13.3 Experiment B：Target Switching
-
-保持候选玩具集合不变，仅改变当前需要抓取的目标。
-
-例如：
-
-```text
-Episode 1 → Target A
-Episode 2 → Target C
-Episode 3 → Target B
-Episode 4 → Target D
-```
-
-每个 Episode 独立重置任务与机器人状态。
-
-测试模型能否根据当前目标条件改变操作行为，而不是重复抓取固定位置或某个偏好的物体。
-
-### 13.4 Experiment C：Language Instruction Variation
-
-针对相同目标，使用不同自然语言表达。
-
-例如：
-
-```text
-Pick up the red car.
-```
-
-```text
-Grab the red toy car.
-```
-
-```text
-Put the red car into the box.
-```
-
-需要确保不同表达对应的实际任务目标一致。
-
-该实验主要测试 SmolVLA 对指令措辞变化的适应能力。
-
-评测时区分：
-
-- 目标识别错误。
-- 目标选择正确但抓取失败。
-- 抓取成功但放置失败。
-
-### 13.5 Experiment D：Object Arrangement Generalization
-
-改变桌面上多个玩具的初始布局。
-
-包括：
-
-- 交换目标与干扰物的位置。
-- 改变目标与干扰物之间的距离。
-- 改变目标物体朝向。
-- 调整候选玩具整体布局。
-- 将目标放置在训练数据未覆盖的可达位置。
-
-测试模型是否能够根据视觉与任务条件确定目标，而不是依赖固定空间位置。
-
-评测场景应保证机器人在物理上能够完成操作。
+观察已抓起的方块在搬运中掉落或释放后，策略是否尝试重新抓取、是否成功重抓以及最终是否完成入杯。出现掉落并不自动等同恢复失败：成功重抓并最终入杯应单独标为恢复成功。
 
 ### 13.6 评测指标
 
-| 指标 | 说明 | 优化方向 |
-|---|---|---|
-| **Task Success Rate** | 完整完成指定目标抓取放置的比例 | ↑ |
-| **Target Selection Accuracy** | 正确选择当前指定目标的比例 | ↑ |
-| Wrong-object Rate | 错误抓取非目标玩具的 Episode 比例 | ↓ |
-| Grasp Success Rate | 目标物体成功被抓取的比例 | ↑ |
-| Placement Success Rate | 目标物体成功被放置的比例 | ↑ |
-| Target Switching Success Rate | 目标切换测试中的任务成功率 | ↑ |
-| Layout OOD Success Rate | 未见物体布局下的任务成功率 | ↑ |
-| Instruction Robustness | 不同语言表达下的任务成功率 | ↑ |
+| 指标 | 说明 |
+|---|---|
+| Task Success Rate | 成功抓取并最终将方块放入杯子的比例 |
+| Valid Initiation Rate | 从初始位姿产生有效接近动作的比例 |
+| Reach / Grasp Success | 能到达方块 / 能真正抓起方块，分开统计 |
+| No-motion Rate | 未形成有效接近动作的比例 |
+| Drop Rate | 搬运过程发生掉落或释放的比例 |
+| Re-grasp Rate | 发生掉落的回合中重新成功抓取的比例 |
+| Recovery Success | 掉落后最终仍能入杯的比例 |
+| Completion Time | 成功回合的完成时间 |
 
-其中，目标选择准确率与最终任务成功率需要分别统计。
+### 13.7 成功判定
 
-例如：
+**Success = Grasped ∧ PlacedInsideCup ∧ ReleasedWithinTimeLimit**
 
-- 选择正确玩具，但未能抓取：目标选择正确，任务失败。
-- 抓取错误玩具并放入盒子：目标选择错误，任务失败。
-- 抓取正确玩具，但放置失败：目标选择正确，任务失败。
-- 正确选择、成功抓取并放置：任务成功。
+机械臂抓空、始终不动、目标未放进杯子或超时，均不能计为成功。若发生掉落但重新抓取并完成入杯，可记录最终成功，同时保留掉落和重抓标记。
 
-### 13.7 任务成功判定
+### 13.8 结果口径
 
-完整任务成功条件：
+本 README 首页的三段真机失败 GIF 是第三方独立研究案例，**不是本仓库新真机实验的已测成功率**。没有新的原始实机 Rollout、对应 Checkpoint 和回合记录时，不填写或推测新任务的成功率。
 
-**Success = CorrectTarget ∧ SuccessfulGrasp ∧ SuccessfulPlacement**
+<details>
+<summary>原 README 真机统计保留（旧版多玩具目标选择口径）</summary>
 
-其中：
+原有 SmolVLA 真机汇总如下，数字未修改。但该统计原先对应多玩具目标选择，指标“目标选择率”和“误抓率”与当前单方块入杯实验不构成同一评测。
 
-- **CorrectTarget**：机器人选择并抓取正确的目标玩具。
-- **SuccessfulGrasp**：成功抓起目标玩具。
-- **SuccessfulPlacement**：成功将目标玩具放入指定容器。
-
-只有上述三个条件全部满足，才判定当前 Episode 成功。
-
-如果机器人抓取错误玩具，即使成功放入盒子，最终仍判定为失败。
-
-### 13.8 实验结果
-
-#### Real-world Multi-Object Manipulation
-
-**Robot:** SO-101  
-**Task:** Target-Conditioned Multi-Object Pick-and-Place
-
-| Model | Success Rate ↑ | Target Selection ↑ | Wrong-object Rate ↓ |
+| Model | Task Success Rate | Target Selection | Wrong-object Rate |
 |---|---:|---:|---:|
 | SmolVLA | **60%** | **86%** | **12%** |
 
-真实环境中同时存在多个玩具，每次 Episode 的目标物体根据任务条件变化。
+原始评测回合与权重未公开，不能将这组数字直接解释为当前 Cube → Cup 条件的成功率。
 
-SmolVLA 使用自然语言指令。
+</details>
 
-上述为项目维护者确认的已完成真机实验汇总。原始训练日志、模型权重、逐 Episode 评测记录、真机标定和视频保留在私有存储中，未提交至 GitHub；本仓库仅展示指标汇总。具体测试次数和完整运行配置尚未在本 README 披露。
+### 13.9 对应视频的失败类型
 
-### 13.9 失败类型分析
+| 类型 | 失败现象 | GIF |
+|---|---|---|
+| Reach Failure | 目标偏移后沿旧轨迹伸手，夹爪抓空 | `clip2_offset_2in.gif` |
+| No Motion | 初始位姿附近抖动，未发起有效动作 | `clip3_no_motion.gif` |
+| Recovery Failure | 搬运中掉落后未重新抓取或未完成入杯 | `clip4_drop_no_recovery.gif` |
 
-| Failure Type | Description |
-|---|---|
-| Target Selection Failure | 选择错误目标 |
-| Initiation Failure | 机器人未正常开始执行操作 |
-| Approach Failure | 未能准确接近目标 |
-| Grasp Failure | 未能成功抓起目标 |
-| Transport Failure | 搬运过程中目标掉落 |
-| Placement Failure | 目标未能正确放入容器 |
-| Timeout | 在规定时间内未完成任务 |
-
-重点分析两类不同的问题：
-
-**目标条件相关失败**
-
-模型没有根据当前任务条件选择正确玩具。
-
-**动作执行相关失败**
-
-模型选择正确目标，但因接近、抓取、搬运或放置问题导致任务失败。
-
-通过区分这两种失败，可以避免将所有操作失败简单归因于目标识别或语言理解能力不足。
+视频与案例说明已置于 README 开头；本项目真实失败率仍需依据自己未来的实机 Episode 记录统计。
 
 ---
 
@@ -1851,13 +1564,11 @@ python scripts/hf/upload_hf.py \
 
 对于仿真实验，三种模型应使用相同任务的专家示范数据进行比较。
 
-对于真机实验，SmolVLA 使用真实操作示范，并覆盖相同的目标集合。
+对于真机实验，SmolVLA 使用方块入杯任务的真实示范；固定自然语言指令，按 Clean、位置随机化和 Recovery 条件分别记录。
 
-### 15.3 目标条件公平性
+### 15.3 任务与示教条件一致性
 
-真机多目标任务中，SmolVLA 使用自然语言指令。
-
-因此，真机结果主要反映 SmolVLA 在视觉、机器人状态与语言任务条件共同作用下的闭环操作能力。
+真机采用统一的 `Pick up the cube and place it in the cup.` 语言指令。比较不同示教条件下的 SmolVLA 时应固定模型初始化、相机、动作语义、复位条件、超时和成功判定。
 
 ### 15.4 泛化类型
 
@@ -1867,21 +1578,21 @@ python scripts/hf/upload_hf.py \
 
 目标在训练未覆盖的位置出现。
 
-**Target Switching**
+**Reach / Position Generalization**
 
-在已知候选玩具集合中切换当前目标。
+改变方块初始位置，观察目标接近与抓取能力。
 
-**Layout Generalization**
+**No-motion Robustness**
 
-改变目标和干扰物的空间布局。
+比较不同示教条件下不启动或仅在初始位姿抖动的回合。
 
-**Instruction Generalization**
+**Recovery Generalization**
 
-使用不同语言表达描述相同任务。
+搬运途中掉落后重新抓取并完成入杯。
 
-**Object Generalization**
+**Appearance Generalization（可选）**
 
-测试训练时未出现的物体类别。
+方块使用训练未见的颜色，但任务目标始终是将方块放入杯子。
 
 上述泛化类型具有不同难度，应分别设计评测任务和报告结果。
 
@@ -1900,9 +1611,9 @@ MuJoCo 仿真与真实 SO-101 环境存在差异，包括：
 - 物体类别。
 - 任务条件。
 
-当前仿真任务使用红色方块和蓝色盒子，真实任务使用多个不同玩具。
+当前仿真任务使用红色方块和蓝色盒子，真机任务使用单个方块与杯子；两者是同类抓取放置任务，但评测条件与数据来源不同。
 
-因此，真实玩具操作不仅涉及仿真与真实环境差异，还涉及操作对象和任务设置的变化。
+因此，真机与仿真除成像、控制和接触差异外，还涉及目标容器与实验条件的变化。
 
 不能将所有性能差异直接解释为纯粹的 Sim-to-Real Gap。
 
@@ -1917,9 +1628,7 @@ MuJoCo 仿真与真实 SO-101 环境存在差异，包括：
 - 足够的测试 Episode。
 - 独立于训练数据的测试场景。
 
-对于真机多目标任务，应平衡不同玩具作为目标的测试次数。
-
-同时明确区分目标选择失败和动作执行失败。
+对于真机方块入杯任务，应分别记录 Baseline、Position Shift、No Motion 和 Recovery 条件的测试次数，区分接近抓空、未启动与掉落后恢复失败。
 
 实验结果需要报告真实测试次数和对应统计方式。
 

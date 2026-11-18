@@ -33,7 +33,7 @@ log_freq = 100
 # 创建政策：
 # - 输入/输出形状：适当调整策略大小
 #   - dataset stats: for normalization and denormalization of input/outputs
-dataset_metadata = LeRobotDatasetMetadata("so101_pnp", root=str(PROJECT_ROOT / 'data' / 'demo_data_so101'))
+dataset_metadata = LeRobotDatasetMetadata("local/so101_red_cube_blue_box", root=str(PROJECT_ROOT / 'data' / 'red_cube_blue_box'))
 features = dataset_to_policy_features(dataset_metadata.features)
 output_features = {key: ft for key, ft in features.items() if ft.type is FeatureType.ACTION}
 input_features = {key: ft for key, ft in features.items() if key not in output_features}
@@ -75,7 +75,7 @@ transform = transforms.Compose([
 ])
 
 # 然后我们可以使用这些 delta_timestamps 配置实例化数据集。
-dataset = LeRobotDataset("so101_pnp", delta_timestamps=delta_timestamps, root=str(PROJECT_ROOT / 'data' / 'demo_data_so101'), image_transforms=transform)
+dataset = LeRobotDataset("local/so101_red_cube_blue_box", delta_timestamps=delta_timestamps, root=str(PROJECT_ROOT / 'data' / 'red_cube_blue_box'), image_transforms=transform)
 
 # Then we create our optimizer and dataloader for offline training.
 optimizer = torch.optim.Adam(policy.parameters(), lr=1e-4)
@@ -89,7 +89,7 @@ dataloader = torch.utils.data.DataLoader(
 )
 
 # ＃＃ 火车
-# 训练后的检查点将保存在“(project_root)/checkpoints/act_y”文件夹中。
+# 训练后的检查点将保存在“(project_root)/checkpoints/act_red_cube_blue_box”文件夹中。
 
 # 运行训练循环。
 step = 0
@@ -110,7 +110,7 @@ while not done:
             break
 
 # 将策略保存到磁盘。
-checkpoint_dir = PROJECT_ROOT / "checkpoints" / "act_y"
+checkpoint_dir = PROJECT_ROOT / "checkpoints" / "act_red_cube_blue_box"
 policy.save_pretrained(str(checkpoint_dir))
 
 # 将数据集元数据/统计信息与检查点一起保存，这样部署就不会
@@ -137,7 +137,7 @@ def _to_jsonable(x):
 
 
 deploy_metadata = {
-    "dataset_repo_id": "so101_pnp",
+    "dataset_repo_id": "local/so101_red_cube_blue_box",
     "features": dataset_metadata.features,
     "stats": dataset_metadata.stats,
     "act_config": {
