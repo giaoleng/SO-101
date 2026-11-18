@@ -1,10 +1,9 @@
-# SO-101
+# SO-101 Policy Benchmark & Real-World SmolVLA Diagnostics
 
 项目包含两个实验场景：
 
 - **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成红色方块抓取放置任务。
 - **Real Robot Manipulation**：在真实 SO-101 机械臂上使用 SmolVLA，完成单个方块抓取并放入杯子的任务，分析位置偏移、策略不启动与掉落后恢复。
-
 
 <a id="highlights"></a>
 
@@ -12,14 +11,11 @@
 
 ### 仿真成功与失败视频
 
-
 **✅ 成功示例**
-
 
 https://github.com/user-attachments/assets/943cd752-5400-4828-933f-b1b99f0062f6
 
 **❌ 失败示例**
-
 
 https://github.com/user-attachments/assets/912d4b07-6fdc-4b79-84c3-de75a64860ce
 
@@ -35,35 +31,27 @@ https://github.com/user-attachments/assets/912d4b07-6fdc-4b79-84c3-de75a64860ce
 
 Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
-
-
 ### SmolVLA 真机部署的视频与失败模式分析
 
 #### Reach Failure：目标偏移导致抓取失败
+
 将方块相对训练位置移动约 2 英寸，机械臂仍沿接近固定的运动轨迹伸出，停在目标前方，夹爪最终闭合但没有抓住方块。这反映出对物体位置变化的视觉条件适应不足。
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="第三方 SO-101 偏移目标抓取失败轨迹">
-
-
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="SO-101 真机偏移目标抓取失败轨迹">
 
 #### Motion Failure：策略未产生有效动作
 
 使用位置随机化示教训练的策略，在绿色方块的某次评测中，机械臂在初始位姿附近小幅抖动，没有形成有效的接近与抓取动作。训练损失下降并不保证闭环动作能够正常启动。
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="第三方 SO-101 无有效动作失败轨迹">
-
-
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="SO-101 真机无有效动作失败轨迹">
 
 #### Recovery Failure：物体掉落后未能恢复
 
 使用恢复示教训练的策略，在某次评测中搬运途中出现两次释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明模仿掉落动作不等于学会掉落后的恢复策略。
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="第三方 SO-101 掉落后未恢复失败轨迹">
-
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="SO-101 真机掉落后未恢复失败轨迹">
 
 ## 目录
-
-- [项目演示与核心结果](#highlights)
 
 ### 一、项目概览与环境配置
 1. [项目概览与系统架构](#overview)
@@ -90,8 +78,8 @@ Completion Time 使用相对于脚本专家平均完成时间的比例表示。
 
 本项目围绕 **SO-101 机械臂** 的抓取放置（Pick-and-Place）操作，独立搭建并完成了**仿真基准对比**与**真机闭环部署**两套完整实验流程。
 
-* **MuJoCo 仿真实验**：基于开源 LeRobot 数据集，在统一的 SO-101 物理仿真环境中独立完成了 **ACT**、**Diffusion Policy** 与 **SmolVLA** 三种模仿学习策略的训练、超参对齐与分布内/分布外（ID / OOD）闭环评测。
-* **SO-101 真机实验**：从硬件标定与双目相机配置出发，通过**人工遥操作（Teleoperation）**亲自采集多条件专家示范数据，独立完成 **SmolVLA** 的微调训练、安全实机部署及针对典型失效模式（位置偏移抓空、策略未启动、搬运掉落恢复）的定量诊断评测。
+- **MuJoCo 仿真实验**：基于开源 LeRobot 数据集，在统一的 SO-101 物理仿真环境中独立完成了 **ACT**、**Diffusion Policy** 与 **SmolVLA** 三种模仿学习策略的训练、超参对齐与分布内/分布外（ID / OOD）闭环评测。
+- **SO-101 真机实验**：从硬件标定与双目相机配置出发，通过**人工遥操作（Teleoperation）**亲自采集多条件专家示范数据，独立完成 **SmolVLA** 的微调训练、安全实机部署及针对典型失效模式（位置偏移抓空、策略未启动、搬运掉落恢复）的定量诊断评测。
 
 ### 1.1 仿真与真机实验对比
 
@@ -184,9 +172,9 @@ python -c "import mujoco, torch, lerobot; print('MuJoCo:', mujoco.__version__, '
 
 仿真环境基于 [TheRobotStudio/SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100) 提供的 SO-101 机械臂模型搭建，包含 5 个旋转关节与 1 个夹爪自由度：
 
-* **场景定义**：`asset/scene_so101_y.xml`（包含 SO-101 机械臂、桌面、蓝色收纳盒、红色目标方块、多色干扰方块及双视角 RGB 相机）。
-* **环境封装**：`mujoco_env/y_env.py`（负责 Episode 重置、物体初始位姿随机采样、关节状态读取、相机渲染及动作步进）。
-* *(注：仓库同时保留了基于 Mink IK + 有限状态机的脚本控制器 `controllers/scripted_fsm_controller.py` 与采集工具 `scripts/collect/` 供扩展使用，但本项目的仿真基准实验完全基于开源数据集开展。)*
+- **场景定义**：`asset/scene_so101_y.xml`（包含 SO-101 机械臂、桌面、蓝色收纳盒、红色目标方块、多色干扰方块及双视角 RGB 相机）。
+- **环境封装**：`mujoco_env/y_env.py`（负责 Episode 重置、物体初始位姿随机采样、关节状态读取、相机渲染及动作步进）。
+- *(注：仓库同时保留了基于 Mink IK + 有限状态机的脚本控制器 `controllers/scripted_fsm_controller.py` 与采集工具 `scripts/collect/` 供扩展使用，但本项目的仿真基准实验完全基于开源数据集开展。)*
 
 ### 3.2 开源数据集转换与质量校验
 
@@ -205,8 +193,8 @@ python scripts/convert_lerobot_dataset_v21_to_v30_local.py \
 **2. 数据回放与特征一致性核验**
 
 训练前通过可视化脚本（`python scripts/visualize/visualize_data.py` 或 `notebooks/2.visualize_data.ipynb`）抽检开源轨迹，确保：
-* 双路相机观测与关节动作严格时间对齐，无丢帧或动作跳变；
-* 关节顺序、弧度单位、夹爪开合范围（`[0, 1]`）及图像特征键名与仿真评测接口完全一致。
+- 双路相机观测与关节动作严格时间对齐，无丢帧或动作跳变；
+- 关节顺序、弧度单位、夹爪开合范围（`[0, 1]`）及图像特征键名与仿真评测接口完全一致。
 
 ---
 
@@ -259,9 +247,9 @@ lerobot-train \
 
 评测阶段彻底脱离任何专家控制器，由策略权重根据实时观测独立输出 Action Chunk 并在 MuJoCo 中闭环执行。
 
-* **分布内测试（ID）**：红色方块在开源训练集覆盖的工作空间范围内随机生成，检验基础抓取放置精度。
-* **分布外测试（OOD）**：红色方块在训练集未覆盖、但处于 SO-101 可达工作空间且不与箱体碰撞的区域内随机生成（保持光照、物体尺寸与物理参数不变），检验策略对未见目标位置的空间泛化能力。
-* **成功判定标准**：$\text{Success} = \text{CorrectTarget} \land \text{SuccessfulGrasp} \land \text{SuccessfulPlacement}$（必须准确抓取红色目标方块、稳定抬起并最终置入蓝色收纳盒内）。
+- **分布内测试（ID）**：红色方块在开源训练集覆盖的工作空间范围内随机生成，检验基础抓取放置精度。
+- **分布外测试（OOD）**：红色方块在训练集未覆盖、但处于 SO-101 可达工作空间且不与箱体碰撞的区域内随机生成（保持光照、物体尺寸与物理参数不变），检验策略对未见目标位置的空间泛化能力。
+- **成功判定标准**：$\text{Success} = \text{CorrectTarget} \land \text{SuccessfulGrasp} \land \text{SuccessfulPlacement}$（必须准确抓取红色目标方块、稳定抬起并最终置入蓝色收纳盒内）。
 
 使用统一评测脚本 `scripts/eval/eval_mujoco.py` 运行三类模型并导出结构化 JSONL 与 CSV 统计：
 
@@ -327,12 +315,12 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 真机实验在真实 **SO-101 机械臂** 上独立完成，任务为抓取桌面方块并放入固定位置的杯子（`Cube → Cup`）：
 
-* **传感与执行配置**：SO-101 机械臂及夹爪 + 双路 RGB 相机（俯视/前视全局相机 + 腕部局部相机，分辨率 `640×480 @ 30 FPS`）。
-* **统一自然语言指令**：所有真机示教与推理均使用固定指令：
+- **传感与执行配置**：SO-101 机械臂及夹爪 + 双路 RGB 相机（俯视/前视全局相机 + 腕部局部相机，分辨率 `640×480 @ 30 FPS`）。
+- **统一自然语言指令**：所有真机示教与推理均使用固定指令：
   ```text
   Pick up the cube and place it in the cup.
   ```
-* **物理安全保障**：配置固定机械臂复位初始位姿、工作空间软限位保护及物理急停开关。
+- **物理安全保障**：配置固定机械臂复位初始位姿、工作空间软限位保护及物理急停开关。
 
 ### 5.2 自主遥操作数据采集
 
@@ -357,10 +345,10 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 真机阶段固定使用 **SmolVLA** 架构，通过对比不同示教条件下微调得到的 Checkpoint，分析数据分布对实机操作鲁棒性的影响。
 
 相关真机代码模块位于：
-* `configs/real/so101.yaml`：真机相机设备号、关节零点标定、控制频率与安全工作空间配置。
-* `scripts/real/task_conditioning.py`：统一封装语言指令与多模态观测输入预处理。
-* `scripts/real/deploy_policy.py`：加载本地 SmolVLA Checkpoint 与真机处理器执行闭环推理。
-* `scripts/real/evaluate_policy.py`：支持按条件（`--condition`）开展真机评测并结构化记录精细化过程标签。
+- `configs/real/so101.yaml`：真机相机设备号、关节零点标定、控制频率与安全工作空间配置。
+- `scripts/real/task_conditioning.py`：统一封装语言指令与多模态观测输入预处理。
+- `scripts/real/deploy_policy.py`：加载本地 SmolVLA Checkpoint 与真机处理器执行闭环推理。
+- `scripts/real/evaluate_policy.py`：支持按条件（`--condition`）开展真机评测并结构化记录精细化过程标签。
 
 > **动作空间安全隔离**：真机底层下发的是校准后的 **5 个关节角度（Degrees）+ 夹爪开合百分比**，与 MuJoCo 仿真的关节弧度制（Radians）严格隔离；部署前必须核对夹爪开合极性及双目相机键名映射。
 
@@ -386,8 +374,8 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 项目同时支持纯本地离线管理与 Hugging Face Hub 云端同步：
 
-* **本地离线模式**：在数据采集或训练脚本中传入 `--offline-local-only`，所有数据与模型分别保存在本地 `data/`、`checkpoints/` 与 `outputs/` 目录。
-* **数据集上传**：使用 `scripts/hf/upload_hf.py` 同步自采真机数据集或微调权重：
+- **本地离线模式**：在数据采集或训练脚本中传入 `--offline-local-only`，所有数据与模型分别保存在本地 `data/`、`checkpoints/` 与 `outputs/` 目录。
+- **数据集上传**：使用 `scripts/hf/upload_hf.py` 同步自采真机数据集或微调权重：
 
 ```bash
 hf auth login
