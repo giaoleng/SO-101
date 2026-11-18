@@ -21,11 +21,18 @@
 
 **✅ 成功示例**
 
-https://github.com/user-attachments/assets/b0f2d2ea-f715-41eb-b63a-15d86f9d2227
+
+https://github.com/user-attachments/assets/943cd752-5400-4828-933f-b1b99f0062f6
 
 **❌ 失败示例**
 
-https://github.com/user-attachments/assets/b923bbc2-e308-45fc-8abb-8a4226dfeaa9
+
+
+
+
+https://github.com/user-attachments/assets/912d4b07-6fdc-4b79-84c3-de75a64860ce
+
+
 
 > **视频来源：** [Rovo Labs / SO-ARM101 Pick-and-Place](https://huggingface.co/datasets/rovolabs/so-arm101-pick-place)，CC BY 4.0。这里展示的是外部数据集中的 SmolVLA 抓取放置示例，不是下方本项目仿真策略评测表的逐 Episode 录像，也不能用来计算本项目模型的成功率。
 
