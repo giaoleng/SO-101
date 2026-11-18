@@ -11,6 +11,19 @@
 
 通过统一的实验设置与评测协议，比较不同模仿学习策略的任务成功率、位置泛化能力、目标选择能力及失败类型。
 
+仿真失败视频：
+
+
+
+https://github.com/user-attachments/assets/b923bbc2-e308-45fc-8abb-8a4226dfeaa9
+
+仿真成功视频
+
+
+
+https://github.com/user-attachments/assets/b0f2d2ea-f715-41eb-b63a-15d86f9d2227
+
+
 ---
 
 ## 目录
