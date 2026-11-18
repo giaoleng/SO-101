@@ -6,7 +6,7 @@
 
 项目包含两个实验场景：
 
-- **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成多颜色方块干扰下的蓝色方块抓取放置任务。
+- **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成红色方块抓取放置任务。
 - **Real Robot Manipulation**：在真实 SO-101 机械臂上比较 ACT 和 SmolVLA，根据任务条件从多个玩具中选择目标并完成抓取放置。
 
 通过统一的实验设置与评测协议，比较不同模仿学习策略的任务成功率、位置泛化能力、目标选择能力及失败类型。
