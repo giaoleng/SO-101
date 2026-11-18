@@ -30,8 +30,6 @@ https://github.com/user-attachments/assets/b897b248-aaac-427f-8586-3e0412ba6b23
 | OOD Success Rate ↑ | 72% | 62% | **83%** |
 
 
-Completion Time 使用相对于脚本专家平均完成时间的比例表示。
-
 ### SmolVLA 真机部署的视频与失败模式分析
 
 #### Reach Failure：目标偏移导致抓取失败
