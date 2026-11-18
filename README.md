@@ -11,22 +11,80 @@
 
 通过统一的实验设置与评测协议，比较不同模仿学习策略的任务成功率、位置泛化能力、目标选择能力及失败类型。
 
-仿真失败视频：
+<a id="highlights"></a>
 
+## 项目演示与核心结果
 
+### 仿真成功与失败视频
 
-https://github.com/user-attachments/assets/b923bbc2-e308-45fc-8abb-8a4226dfeaa9
+**任务：**抓取红色方块，放入蓝色盒子（Red Cube → Blue Box）。
 
-仿真成功视频
-
-
+**✅ 成功示例**
 
 https://github.com/user-attachments/assets/b0f2d2ea-f715-41eb-b63a-15d86f9d2227
 
+**❌ 失败示例**
+
+https://github.com/user-attachments/assets/b923bbc2-e308-45fc-8abb-8a4226dfeaa9
+
+> **视频来源：** [Rovo Labs / SO-ARM101 Pick-and-Place](https://huggingface.co/datasets/rovolabs/so-arm101-pick-place)，CC BY 4.0。这里展示的是外部数据集中的 SmolVLA 抓取放置示例，不是下方本项目仿真策略评测表的逐 Episode 录像，也不能用来计算本项目模型的成功率。
+
+### 仿真实验结果
+
+#### Simulation Policy Benchmark
+
+**Environment:** SO-101 MuJoCo  
+**Task:** Red Cube Pick-and-Place / Blue Box Placement
+
+| Metric | ACT | Diffusion Policy | SmolVLA |
+|---|---:|---:|---:|
+| **Success Rate ↑** | **82%** | 69% | 77% |
+| Completion Time ↓ | **1.42 × Expert** | 1.58 × Expert | 1.67 × Expert |
+| OOD Success Rate ↑ | 62% | 49% | **63%** |
+| Initiation Failure Rate ↓ | **4%** | 13% | 14% |
+| Grasp Failure Rate ↓ | **17%** | 22% | 21% |
+
+Completion Time 使用相对于脚本专家平均完成时间的比例表示。
+
+上述为项目维护者确认的已完成仿真实验汇总。原始训练日志、模型权重、逐 Episode 评测记录和数据集保留在私有存储中，未提交至 GitHub；本仓库仅展示指标汇总。具体测试 Episode 数量与完整训练配置尚未在本 README 披露。
+
+> **结果说明：**所有统计数值与原 README 保持一致，沿用原有私有实验汇总。项目任务现已调整为红色方块放入蓝色盒子，但仅修改任务描述并不等于已使用新任务重新评测；逐 Episode 记录未在仓库公开。
+
+### SmolVLA 失败模式与视频（第三方参考）
+
+以下 GIF 来自独立开源项目 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study) 的 SmolVLA 数据研究。它们用于说明常见失败机制，不是本项目的仿真或真机评测录像。
+
+#### Reach Failure：目标偏移导致抓取失败
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="第三方 SO-101 偏移目标抓取失败轨迹">
+
+原项目将方块相对训练位置移动约 2 英寸，机械臂仍沿接近固定的运动轨迹伸出，停在目标前方，夹爪最终闭合但没有抓住方块。这反映出对物体位置变化的视觉条件适应不足。
+
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方 SmolVLA 实验，不是本项目 OOD 评测录像。*
+
+#### Motion Failure：策略未产生有效动作
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="第三方 SO-101 无有效动作失败轨迹">
+
+原项目随机化数据设置下的某次评测中，机械臂在初始位姿附近小幅抖动，没有形成有效的接近与抓取动作。训练损失下降并不保证闭环动作能够正常启动。
+
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不代表本项目模型发生了同样的故障。*
+
+#### Recovery Failure：物体掉落后未能恢复
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="第三方 SO-101 掉落后未恢复失败轨迹">
+
+原项目的恢复数据训练设置下，机械臂抓取后出现中途释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明模仿掉落动作不等于学会掉落后的恢复策略。
+
+*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不是本项目真机失败轨迹。*
+
+> **说明：**以上 GIF 来自其他 SO-101 / SmolVLA 研究项目，不能当作本项目真机实测失败录像。本项目真机实验设计与结果见 [第 13 节](#real-evaluation)。
 
 ---
 
 ## 目录
+
+- [项目演示与核心结果](#highlights)
 
 ### 项目概览
 
@@ -270,33 +328,9 @@ SmolVLA 输出机器人动作，经安全检查后发送至 SO-101 控制接口�
 
 演示由基于 **Mink Inverse Kinematics + Finite State Machine** 的脚本专家生成，不代表 ACT、Diffusion Policy 或 SmolVLA 的训练结果。
 
-### 3.2 公开第三方 SmolVLA 失败模式参考
+### 3.2 SmolVLA 失败模式参考
 
-以下 GIF 来自独立开源项目 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study) 的 SmolVLA 数据研究。它们用于说明常见失败机制，不是本项目的仿真或真机评测录像。
-
-#### Reach Failure：目标偏移导致抓取失败
-
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="第三方 SO-101 偏移目标抓取失败轨迹">
-
-原项目将方块相对训练位置移动约 2 英寸，机械臂仍沿接近固定的运动轨迹伸出，停在目标前方，夹爪最终闭合但没有抓住方块。这反映出对物体位置变化的视觉条件适应不足。
-
-*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方 SmolVLA 实验，不是本项目 OOD 评测录像。*
-
-#### Motion Failure：策略未产生有效动作
-
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="第三方 SO-101 无有效动作失败轨迹">
-
-原项目随机化数据设置下的某次评测中，机械臂在初始位姿附近小幅抖动，没有形成有效的接近与抓取动作。训练损失下降并不保证闭环动作能够正常启动。
-
-*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不代表本项目模型发生了同样的故障。*
-
-#### Recovery Failure：物体掉落后未能恢复
-
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="第三方 SO-101 掉落后未恢复失败轨迹">
-
-原项目的恢复数据训练设置下，机械臂抓取后出现中途释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明模仿掉落动作不等于学会掉落后的恢复策略。
-
-*来源：[原项目失败模式视频与分析](https://github.com/Andresg324/so101-vla-data-study#failure-modes-on-video)，MIT License；第三方实验，不是本项目真机失败轨迹。*
+Reach Failure、Motion Failure 和 Recovery Failure 的 GIF 与分析已移至开头的 [项目演示与核心结果](#highlights)。
 
 ---
 
@@ -1218,22 +1252,8 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 ### 10.6 仿真实验结果
 
-#### Simulation Policy Benchmark
+原有完整实验结果表已移至开头的 [项目演示与核心结果](#highlights)，保留原始统计数值；本节前文仍为完整评测设置与指标定义。
 
-**Environment:** SO-101 MuJoCo  
-**Task:** Red Cube Pick-and-Place / Blue Box Placement
-
-| Metric | ACT | Diffusion Policy | SmolVLA |
-|---|---:|---:|---:|
-| **Success Rate ↑** | **82%** | 69% | 77% |
-| Completion Time ↓ | **1.42 × Expert** | 1.58 × Expert | 1.67 × Expert |
-| OOD Success Rate ↑ | 62% | 49% | **63%** |
-| Initiation Failure Rate ↓ | **4%** | 13% | 14% |
-| Grasp Failure Rate ↓ | **17%** | 22% | 21% |
-
-Completion Time 使用相对于脚本专家平均完成时间的比例表示。
-
-上述为项目维护者确认的已完成仿真实验汇总。原始训练日志、模型权重、逐 Episode 评测记录和数据集保留在私有存储中，未提交至 GitHub；本仓库仅展示指标汇总。具体测试 Episode 数量与完整训练配置尚未在本 README 披露。
 
 ### 10.7 失败类型分析
 
