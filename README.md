@@ -1,3 +1,11 @@
+
+
+https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
+
+
+
+https://github.com/user-attachments/assets/9fa9a44b-a124-4daa-95e9-cd610ffb2621
+
 # SO-101 Policy Benchmark & Real-World SmolVLA Diagnostics
 
 项目包含两个实验场景：
