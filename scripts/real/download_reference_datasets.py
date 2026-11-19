@@ -158,7 +158,6 @@ def main(argv=None) -> int:
     temporary_path.write_text(
         json.dumps(
             {
-                "source_repository": "https://github.com/Andresg324/so101-vla-data-study",
                 "conditions": completed,
             },
             ensure_ascii=False,
