@@ -30,26 +30,47 @@ https://github.com/user-attachments/assets/b897b248-aaac-427f-8586-3e0412ba6b23
 | OOD Success Rate ↑ | 72% | 62% | **83%** |
 
 
-### SmolVLA 真机部署的视频与失败模式分析
+### SmolVLA 真机操作视频与失败模式分析
 
-#### Reach Failure：目标偏移导致抓取失败
+> **视频来源说明**：本节五段真机视频均引用自 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study) 的 SO-101 / SmolVLA 实验，**不是本仓库独立采集或评测的真机结果**。以下分析解释参考案例中可观察到的行为，不代表本项目已复现实验。为保证当前 README 可直接预览，暂时使用原项目的 GIF；转换后的 MP4 有可访问的托管地址后再替换。
 
-将方块相对训练位置移动约 2 英寸，机械臂仍沿接近固定的运动轨迹伸出，停在目标前方，夹爪最终闭合但没有抓住方块。这反映出对物体位置变化的视觉条件适应不足。
+#### ✅ Success：正常抓取与放置
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="SO-101 真机偏移目标抓取失败轨迹">
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip1_clean_success.gif" width="460" alt="参考项目：SO-101 SmolVLA 正常完成方块抓取、搬运与入杯">
 
-#### Motion Failure：策略未产生有效动作
+**行为表现**：Clean 策略在训练分布内完成接近、夹取、搬运与释放。该视频作为对照基准，便于比较下方失败案例发生在哪个操作阶段。
 
-使用位置随机化示教训练的策略，在绿色方块的某次评测中，机械臂在初始位姿附近小幅抖动，没有形成有效的接近与抓取动作。训练损失下降并不保证闭环动作能够正常启动。
+#### ❌ Reach Failure：目标偏移后接近不足
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="SO-101 真机无有效动作失败轨迹">
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="参考项目：方块偏移两英寸后机械臂未到达目标">
 
-#### Recovery Failure：物体掉落后未能恢复
+**失败现象**：方块相对训练位置向机械臂方向偏移约 2 英寸（5.08 cm），机械臂仍沿近似固定的方向伸出，最终在方块前方闭合夹爪，未完成抓取。
 
-使用恢复示教训练的策略，在某次评测中搬运途中出现两次释放，但未能重新成功抓取，最终超时，物体留在桌面。该案例说明模仿掉落动作不等于学会掉落后的恢复策略。
+**诊断分析**：参考项目的轨迹统计显示，目标需要的接近角度约为 29.4°，而机械臂实际达到的角度不足。这更接近**策略未充分调整接近动作**的问题，不能仅从抓空现象推断为夹爪闭合故障。可通过目标位置与实际关节轨迹进一步区分目标定位、运动规划及夹爪执行失效。
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="SO-101 真机掉落后未恢复失败轨迹">
+#### ❌ No Motion：策略未有效离开初始位姿
 
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="参考项目：机械臂在初始位姿附近轻微抖动，没有形成有效抓取动作">
+
+**失败现象**：位置随机化示教训练的策略面对绿色方块时，机械臂在初始姿态附近小幅抖动，始终没有形成有效接近动作。
+
+**诊断分析**：这是 **Initiation Failure（动作启动失败）**，与“已接近目标但抓取失败”不同。应结合关节位移幅度、动作启动延迟与控制指令判断是否真正产生有效运动；仅凭该视频不能确定停滞源于模型预测、动作后处理还是硬件控制。
+
+#### ❌ Recovery Failure：掉落后未完成恢复
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="参考项目：方块搬运中释放后未完成重新抓取">
+
+**失败现象**：使用恢复示教训练的策略在搬运过程中释放方块，但没有完成重新定位、再次抓取和最终入杯，任务超时。
+
+**诊断分析**：模型可能学到了示教中的**释放动作**，却没有稳定学到释放之后的**闭环恢复序列**。因此需要分别记录掉落事件、是否尝试重抓、重抓是否成功以及最终任务是否完成，不能只统计完整任务成功率。
+
+#### ✅ Re-grasp：少量成功重抓案例
+
+<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip5_rare_regrasp.gif" width="460" alt="参考项目：方块掉落后成功重新抓取">
+
+**行为表现**：方块掉落后，策略重新接近并抓起目标。参考项目报告在 53 次掉落回合中有 6 次成功重抓，说明恢复行为并非完全不存在，但**偶尔成功不代表恢复能力可靠**。
+
+**分析重点**：对比 Recovery Failure 与 Re-grasp，可将“有没有主动重抓”和“重抓之后是否完成任务”分开评估，避免使用单一成功率掩盖恢复阶段的差异。
 ## 目录
 
 ### 一、项目概览与环境配置
