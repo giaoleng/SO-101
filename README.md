@@ -1,10 +1,9 @@
 
 
-https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 
 
-https://github.com/user-attachments/assets/9fa9a44b-a124-4daa-95e9-cd610ffb2621
+
 
 # SO-101 Policy Benchmark & Real-World SmolVLA Diagnostics
 
@@ -44,13 +43,17 @@ https://github.com/user-attachments/assets/b897b248-aaac-427f-8586-3e0412ba6b23
 
 #### ✅ Success：正常抓取与放置
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip1_clean_success.gif" width="460" alt="参考项目：SO-101 SmolVLA 正常完成方块抓取、搬运与入杯">
+https://github.com/user-attachments/assets/9fa9a44b-a124-4daa-95e9-cd610ffb2621
 
 **行为表现**：Clean 策略在训练分布内完成接近、夹取、搬运与释放。该视频作为对照基准，便于比较下方失败案例发生在哪个操作阶段。
 
 #### ❌ Reach Failure：目标偏移后接近不足
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip2_offset_2in.gif" width="460" alt="参考项目：方块偏移两英寸后机械臂未到达目标">
+
+
+https://github.com/user-attachments/assets/bbaef4dc-106d-4fae-a9b8-1aff7b190b3d
+
+
 
 **失败现象**：方块相对训练位置向机械臂方向偏移约 2 英寸（5.08 cm），机械臂仍沿近似固定的方向伸出，最终在方块前方闭合夹爪，未完成抓取。
 
@@ -58,7 +61,11 @@ https://github.com/user-attachments/assets/b897b248-aaac-427f-8586-3e0412ba6b23
 
 #### ❌ No Motion：策略未有效离开初始位姿
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip3_no_motion.gif" width="460" alt="参考项目：机械臂在初始位姿附近轻微抖动，没有形成有效抓取动作">
+
+
+https://github.com/user-attachments/assets/ed2eac7b-f7ce-4398-b8cd-6ba9fa5d1600
+
+
 
 **失败现象**：位置随机化示教训练的策略面对绿色方块时，机械臂在初始姿态附近小幅抖动，始终没有形成有效接近动作。
 
@@ -66,15 +73,17 @@ https://github.com/user-attachments/assets/b897b248-aaac-427f-8586-3e0412ba6b23
 
 #### ❌ Recovery Failure：掉落后未完成恢复
 
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip4_drop_no_recovery.gif" width="460" alt="参考项目：方块搬运中释放后未完成重新抓取">
+
+https://github.com/user-attachments/assets/54a7244c-4357-44bf-8dc6-48e12bf8f12b
+
+
 
 **失败现象**：使用恢复示教训练的策略在搬运过程中释放方块，但没有完成重新定位、再次抓取和最终入杯，任务超时。
 
 **诊断分析**：模型可能学到了示教中的**释放动作**，却没有稳定学到释放之后的**闭环恢复序列**。因此需要分别记录掉落事件、是否尝试重抓、重抓是否成功以及最终任务是否完成，不能只统计完整任务成功率。
 
 #### ✅ Re-grasp：少量成功重抓案例
-
-<img src="https://raw.githubusercontent.com/Andresg324/so101-vla-data-study/main/media/clip5_rare_regrasp.gif" width="460" alt="参考项目：方块掉落后成功重新抓取">
+https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 **行为表现**：方块掉落后，策略重新接近并抓起目标。参考项目报告在 53 次掉落回合中有 6 次成功重抓，说明恢复行为并非完全不存在，但**偶尔成功不代表恢复能力可靠**。
 
