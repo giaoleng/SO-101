@@ -2,7 +2,7 @@
 """Plan and optionally start a 50-demo teleoperation session for one condition.
 
 Operator must follow the printed numbered plan and change the physical scene
-between episodes. All commands are dry-run unless --execute is supplied.
+between episodes. Recording runs by default; use --dry-run to inspect the plan.
 """
 from __future__ import annotations
 
@@ -47,7 +47,10 @@ def main(argv=None):
     p.add_argument('--front-idx', type=int, required=True)
     p.add_argument('--wrist-idx', type=int, required=True)
     p.add_argument('--plan-output', type=Path, help='Optional new JSON run sheet (no overwrite)')
-    p.add_argument('--execute', action='store_true')
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument('--execute', dest='execute', action='store_true', help='Record 50 demonstrations (default)')
+    mode.add_argument('--dry-run', dest='execute', action='store_false', help='Print collection plan only')
+    p.set_defaults(execute=True)
     args = p.parse_args(argv)
     try:
         cmd = record_command(repo_id=args.repo_id, dataset_root=args.dataset_root,
