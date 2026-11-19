@@ -79,6 +79,7 @@ def main(argv=None):
             p.error('Camera rename_map would duplicate a camera key')
         cameras[new_name] = settings
     cfg['robot']['cameras'] = cameras
+    cfg['policy']['dataset_root'] = str(Path(manifest['dataset_root']))
     if Path(local_path(args.output)).exists():
         p.error('Output JSONL already exists; refuse to overwrite')
     recorder = JsonlRecorder(local_path(args.output), {**metadata(cfg), 'training_manifest': str(local_path(args.training_manifest))})
