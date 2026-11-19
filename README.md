@@ -240,7 +240,7 @@ python -c "import mujoco, torch, lerobot; print('MuJoCo:', mujoco.__version__, '
 
 ### 3.1 SO-101 MuJoCo 仿真场景
 
-仿真环境基于 [TheRobotStudio/SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100) 提供的 SO-101 机械臂模型搭建，包含 5 个旋转关节与 1 个夹爪自由度：
+仿真环境使用 SO-101 机械臂 MJCF 模型搭建，包含 5 个旋转关节与 1 个夹爪自由度：
 
 - **场景定义**：`asset/scene_so101_y.xml`（包含 SO-101 机械臂、桌面、蓝色收纳盒、红色目标方块、多色干扰方块及双视角 RGB 相机）。
 - **环境封装**：`mujoco_env/y_env.py`（负责 Episode 重置、物体初始位姿随机采样、关节状态读取、相机渲染及动作步进）。
@@ -248,11 +248,11 @@ python -c "import mujoco, torch, lerobot; print('MuJoCo:', mujoco.__version__, '
 
 ### 3.2 开源数据集转换与质量校验
 
-仿真实验直接加载开源 LeRobotDataset，统一转换为 **LeRobotDataset v3.0** 标准目录结构（`meta/`、`data/`、`videos/`）：
+仿真实验加载 LeRobotDataset 格式数据，统一转换为 **LeRobotDataset v3.0** 标准目录结构（`meta/`、`data/`、`videos/`）：
 
 **1. 历史版本转换（v2.1 → v3.0）与 Parquet Schema 修复**
 
-针对部分开源数据集包含 `spawn.block_xyz` 等历史字段导致的 NumPy Object Vector 与 PyArrow 兼容问题，使用内置转换脚本自动修复（原始数据会自动备份至相邻 `_old` 目录，可通过 `--no-repair-parquet` 关闭修复）：
+针对部分数据集包含 `spawn.block_xyz` 等历史字段导致的 NumPy Object Vector 与 PyArrow 兼容问题，使用内置转换脚本自动修复（原始数据会自动备份至相邻 `_old` 目录，可通过 `--no-repair-parquet` 关闭修复）：
 
 ```bash
 python scripts/convert_lerobot_dataset_v21_to_v30_local.py \
@@ -262,7 +262,7 @@ python scripts/convert_lerobot_dataset_v21_to_v30_local.py \
 
 **2. 数据回放与特征一致性核验**
 
-训练前通过可视化脚本（`python scripts/visualize/visualize_data.py` 或 `notebooks/2.visualize_data.ipynb`）抽检开源轨迹，确保：
+训练前通过可视化脚本（`python scripts/visualize/visualize_data.py` 或 `notebooks/2.visualize_data.ipynb`）抽检训练轨迹，确保：
 - 双路相机观测与关节动作严格时间对齐，无丢帧或动作跳变；
 - 关节顺序、弧度单位、夹爪开合范围（`[0, 1]`）及图像特征键名与仿真评测接口完全一致。
 
@@ -274,7 +274,7 @@ python scripts/convert_lerobot_dataset_v21_to_v30_local.py \
 
 ### 4.1 三种模仿学习策略训练
 
-在完全相同的开源数据集与训练划分下，独立训练三类代表性策略进行横向对比：
+在相同的数据集与训练划分下，独立训练三类代表性策略进行横向对比：
 
 | 模型 | 核心架构 | 初始化方式 | 输入模态 | 训练入口 / 命令 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -317,7 +317,7 @@ lerobot-train \
 
 评测阶段彻底脱离任何专家控制器，由策略权重根据实时观测独立输出 Action Chunk 并在 MuJoCo 中闭环执行。
 
-- **分布内测试（ID）**：红色方块在开源训练集覆盖的工作空间范围内随机生成，检验基础抓取放置精度。
+- **分布内测试（ID）**：红色方块在训练集覆盖的工作空间范围内随机生成，检验基础抓取放置精度。
 - **分布外测试（OOD）**：红色方块在训练集未覆盖、但处于 SO-101 可达工作空间且不与箱体碰撞的区域内随机生成（保持光照、物体尺寸与物理参数不变），检验策略对未见目标位置的空间泛化能力。
 - **成功判定标准**：$\text{Success} = \text{CorrectTarget} \land \text{SuccessfulGrasp} \land \text{SuccessfulPlacement}$（必须准确抓取红色目标方块、稳定抬起并最终置入蓝色收纳盒内）。
 
@@ -611,7 +611,7 @@ python scripts/hf/upload_hf.py \
 
 1. **环境与随机种子记录**：复现时完整记录操作系统、Python / PyTorch / CUDA / MuJoCo / LeRobot 版本、GPU 型号及评测 `--seed`（默认 `42`）。
 2. **输入输出特征严格对齐**：确保训练与推理阶段使用完全一致的相机特征名（如 `observation.images.top` / `observation.images.wrist`）、图像分辨率、控制频率及归一化统计量（`meta/stats.json`）。
-3. **Sim-to-Real 边界说明**：本项目仿真任务为「红方块 → 蓝盒子」（基于开源数据集），真机任务为「单方块 → 杯子」（基于自主遥操作采集），两者在视觉成像、接触摩擦、控制延迟及容器几何上均存在差异，评测结果各自独立分析，不直接混同为单一的 Sim-to-Real Gap。
+3. **Sim-to-Real 边界说明**：本项目仿真任务为「红方块 → 蓝盒子」（使用仿真训练数据集），真机任务为「单方块 → 杯子」（基于自主遥操作采集），两者在视觉成像、接触摩擦、控制延迟及容器几何上均存在差异，评测结果各自独立分析，不直接混同为单一的 Sim-to-Real Gap。
 4. **控制变量原则**：仿真多策略对比固定相同的初始随机状态集合与最大超时步数；真机不同条件评测固定相同的相机机位、光照环境与机械臂复位零点。
 
 ---
