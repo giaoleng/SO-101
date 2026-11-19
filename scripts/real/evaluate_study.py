@@ -64,6 +64,21 @@ def main(argv=None):
     if (manifest.get('condition') != args.condition or manifest.get('seed') != args.seed or
             manifest.get('steps') != 10000 or manifest.get('batch_size') != 32):
         p.error('Training manifest condition/seed/budget does not match this evaluation')
+    # Align camera feature names with the rename map saved by the training run.
+    rename = manifest.get('rename_map', {})
+    if not isinstance(rename, dict):
+        p.error('Malformed training rename_map')
+    cameras = {}
+    for old_name, settings in cfg['robot']['cameras'].items():
+        raw_feature = 'observation.images.' + old_name
+        new_feature = rename.get(raw_feature, raw_feature)
+        if not isinstance(new_feature, str) or not new_feature.startswith('observation.images.'):
+            p.error(f'Invalid renamed feature: {new_feature}')
+        new_name = new_feature.removeprefix('observation.images.')
+        if not new_name or new_name in cameras:
+            p.error('Camera rename_map would duplicate a camera key')
+        cameras[new_name] = settings
+    cfg['robot']['cameras'] = cameras
     if Path(local_path(args.output)).exists():
         p.error('Output JSONL already exists; refuse to overwrite')
     recorder = JsonlRecorder(local_path(args.output), {**metadata(cfg), 'training_manifest': str(local_path(args.training_manifest))})
