@@ -1,4 +1,4 @@
-"""Offline regression coverage for the four-condition real SmolVLA study."""
+"""Offline regression coverage for the five-model real SmolVLA study."""
 import json
 import tempfile
 from pathlib import Path
