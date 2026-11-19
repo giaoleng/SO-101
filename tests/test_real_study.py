@@ -30,7 +30,7 @@ class RealStudyProtocol(unittest.TestCase):
             self.assertTrue(trials[0]['warmup'])
             self.assertEqual(sum(not r['warmup'] for r in trials), 15)
         positions = [r['position_id'] for r in evaluation_plan('new_positions')[1:]]
-        self.assertEqual(positions, [f'E{i}' for i in range(1, 6) for _ in range(3)])
+        self.assertEqual(positions, [f'E{i}' for _ in range(3) for i in range(1, 6)])
         self.assertEqual({r['cube_color'] for r in evaluation_plan('different_object')}, {'green'})
 
     def test_matched_training_budget_and_dataset_contract(self):
