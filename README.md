@@ -1,4 +1,4 @@
-# SO-101 Policy Benchmark & Real-World SmolVLA Diagnostics
+# SO-101 机械臂策略评测与真机操作诊断
 
 项目包含两个实验场景：
 
