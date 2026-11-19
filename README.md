@@ -588,7 +588,7 @@ Baseline 与四组固定策略模型的训练和统一真机评测均已完成�
 
 项目同时支持纯本地离线管理与 Hugging Face Hub 云端同步：
 
-- **本地离线模式**：在数据采集或训练脚本中传入 `--offline-local-only`，所有数据与模型分别保存在本地 `data/`、`checkpoints/` 与 `outputs/` 目录。
+- **本地训练与采集**：采集入口关闭 `dataset.push_to_hub`，训练入口关闭 `policy.push_to_hub`，训练进程使用 `HF_HUB_OFFLINE=1` 与 `TRANSFORMERS_OFFLINE=1`，数据和模型保存在本地 `data/`、`checkpoints/` 与 `outputs/` 目录。四组示教数据的首次下载仍需联网访问脚本中配置的数据集仓库；项目没有 `--offline-local-only` 这个命令行参数。
 - **数据集上传**：使用 `scripts/hf/upload_hf.py` 同步自采真机数据集或微调权重：
 
 ```bash
