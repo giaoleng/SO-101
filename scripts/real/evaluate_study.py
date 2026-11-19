@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Score a fixed 16-rollout SO-101 cell using the existing guarded real runner.
 
-Each trial requires manual scene setup and operator scoring. Without --execute the
-command only prints the plan and never opens cameras or the robot serial port.
+Each trial requires manual scene setup and operator scoring. Evaluation runs by
+default; use --dry-run to inspect the plan without accessing hardware.
 """
 from __future__ import annotations
 
@@ -35,7 +35,10 @@ def build_parser():
     p.add_argument('--checkpoint', type=Path, required=True)
     p.add_argument('--training-manifest', type=Path, required=True, help='Matching study_manifest.json from training run')
     p.add_argument('--output', type=Path, required=True)
-    p.add_argument('--execute', action='store_true')
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument('--execute', dest='execute', action='store_true', help='Run real evaluation (default)')
+    mode.add_argument('--dry-run', dest='execute', action='store_false', help='Print evaluation plan only')
+    p.set_defaults(execute=True)
     return p
 
 
