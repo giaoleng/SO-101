@@ -10,7 +10,7 @@
 项目包含两个实验场景：
 
 - **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成红色方块抓取放置任务。
-- **Real Robot Manipulation**：围绕真实 SO-101 的 Cube → Cup 任务，研究不同示教数据采集策略对 SmolVLA 泛化和失败行为的影响（实验代码已配置，当前新任务结果待实测）。
+- **Real Robot Manipulation**：围绕真实 SO-101 的 Cube → Cup 任务，构建以自主 Rollout 失败诊断为反馈、由专家定向补充纠正示教的迭代数据采集研究框架。当前仓库已配置首轮受控示教、真机评测和人工失败标签记录；失败引导的定向补采与再次训练作为下一阶段研究，结果待实测。
 
 <a id="highlights"></a>
 
@@ -98,10 +98,10 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 3. [仿真环境与开源数据集处理](#sim-env-data)
 4. [仿真策略训练与闭环评测](#sim-train-eval)
 
-### 三、SO-101 真机实验（自主遥操作采集 + SmolVLA 部署）
-5. [真机平台与遥操作数据采集](#real-env-data)
+### 三、SO-101 真机实验（失败诊断驱动的迭代式示教采集）
+5. [真机平台与失败引导的数据采集](#real-env-data)
    - [真机部署模块：机械臂标定、相机标定与硬件检查](docs/REAL_HARDWARE_SETUP.md)
-6. [真机策略训练、部署与诊断评测](#real-train-eval)
+6. [真机策略训练、失败诊断与迭代改进](#real-train-eval)
 
 ### 四、数据管理与复现规范
 7. [Hugging Face 数据管理](#huggingface)
@@ -114,10 +114,10 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 ## 1. 项目概览与系统架构
 
-本项目围绕 **SO-101 机械臂** 的抓取放置（Pick-and-Place）操作，包含**仿真基准对比**与**真机 SmolVLA 数据采集策略对照研究**两条实验路线；当前新真机研究协议已经补充，尚未上传其独立实测结果。
+本项目围绕 **SO-101 机械臂** 的抓取放置（Pick-and-Place）操作，包含**仿真基准对比**与**真机失败引导的迭代式数据采集研究**两条实验路线。真机路线先通过受控示教策略建立初始模型，再利用自主 Rollout 暴露的失败模式确定后续纠正示教的采集重点；当前新任务的独立真机训练与评测结果仍待实测。
 
 - **MuJoCo 仿真实验**：基于开源 LeRobot 数据集，在统一的 SO-101 物理仿真环境中独立完成了 **ACT**、**Diffusion Policy** 与 **SmolVLA** 三种模仿学习策略的训练、超参对齐与分布内/分布外（ID / OOD）闭环评测。
-- **SO-101 真机实验**：以 **SmolVLA** 为固定模型，规划 Clean、Randomized、Recovery、Color-varied 四种示教策略的对照实验，提供遥操作采集、微调、人工监督安全评测和离线汇总入口；真实训练/评测成绩待验证。
+- **SO-101 真机实验**：以 **SmolVLA** 为固定模型，先用 Clean、Randomized、Recovery、Color-varied 四种受控示教策略建立初始策略并分析其失败分布，再以失败诊断结果指导下一轮专家纠正示教的定向补采。仓库提供首轮采集、微调、人工监督评测和离线汇总入口；后续定向补采实验及真实成绩待验证。
 
 ### 1.1 仿真与真机实验对比
 
@@ -125,10 +125,10 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 | :--- | :--- | :--- |
 | **机器人平台** | SO-101（5 旋转关节 + 1 夹爪，MJCF 物理模型） | SO-101 实体机械臂 + 夹爪 + 双路 640×480@30fps 相机 |
 | **任务目标** | 抓取**红色方块**放入**蓝色收纳盒**（含多色干扰方块） | 抓取桌面**方块**放入**杯子**（`Cube → Cup`） |
-| **数据来源** | **直接采用开源 LeRobotDataset**（经本地格式校验与统计归一化） | 计划通过人工遥操作采集、按条件隔离的专家示范 |
+| **数据来源** | **直接采用开源 LeRobotDataset**（经本地格式校验与统计归一化） | 首轮受控专家示教；后续依据 Rollout 失败诊断定向补充纠正示教（下一阶段） |
 | **对比策略** | **ACT** vs. **Diffusion Policy** vs. **SmolVLA** | **SmolVLA**（相同模型架构在不同示教策略下的行为诊断） |
 | **语言指令** | 固定仿真任务描述 | `Pick up the cube and place it in the cup.` |
-| **核心研究问题** | 三类主流模仿学习架构在 ID 与 OOD 位置泛化下的性能边界 | 不同示教数据策略对成功率、位置泛化、动作启动和掉落恢复的影响 |
+| **核心研究问题** | 三类主流模仿学习架构在 ID 与 OOD 位置泛化下的性能边界 | 能否利用自主执行中的失败诊断，主动确定下一轮纠正示教的采集重点，并改善位置泛化、抓取和恢复能力 |
 
 ### 1.2 系统流水线
 
@@ -143,20 +143,34 @@ SO-101 MuJoCo 场景 (scene_so101_y.xml) ◀──── 闭环 Rollout 推理 �
 ID / OOD 位置泛化与失败类型量化分析
 ```
 
-**真机实验流水线（自主遥操作驱动）：**
+**真机实验流水线（失败诊断驱动的人工在环迭代采集）：**
 
 ```text
-4 组专家示教 (Clean / Randomized / Recovery / Color) × 每组 50 条
+首轮受控专家示教
+Clean / Randomized / Recovery / Color-varied
         │
         ▼
-相同 SmolVLA 基础模型 × 相同训练预算 × 2 个训练种子
+训练初始 SmolVLA 策略
         │
         ▼
-5 类真机测试场景 × 每格 15 条计分回合（另有 1 条预热）
+真机自主 Rollout + 人工阶段标签
         │
         ▼
-Task Success + Reach / No Motion / Grasp / Drop / Recovery 诊断统计
+失败模式统计与代表性案例复核
+        │
+        ▼
+确定下一轮需要补充的状态与动作阶段
+        │
+        ▼
+专家定向纠正示教（下一阶段）
+        │
+        ▼
+原始数据 + 纠正数据 → 数据聚合 → 重新训练
+        │                         ▲
+        └────── 新一轮评测与诊断 ──┘
 ```
+
+> **实现状态**：当前代码已覆盖首轮受控采集计划、训练、真机 Rollout、人工失败阶段标注和离线统计。依据失败结果自动调度补采、在策略失败状态下在线接管，以及自动聚合纠正轨迹，仍属于下一阶段工作；上图表达研究迭代路线，不表示这些环节已经自动化。
 
 ---
 
@@ -351,9 +365,9 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 <a id="real-env-data"></a>
 
-## 5. 真机平台与示教数据策略研究
+## 5. 真机平台与失败引导的数据采集
 
-> **状态与参考**：本节将 Cube → Cup 真机实验重新组织为**待运行的、可复现的研究方案与离线/真机运行代码**。仓库当前未提供这套新任务的实机训练数据、Checkpoint 或评测日志，**本项目自己的真机成功率尚未实测**；上方真机视频来自 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，不是本项目实测。实验设计借鉴原项目的 [PROTOCOL.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/PROTOCOL.md) 和 [SETUP.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/SETUP.md)；第 6.3 节**单独引用其真实成功率**供对照，不能将引用结果当成本项目的实测结果。此方案属于**不同示教数据分布下的离线模仿学习对照实验**，不是 DAgger。
+> **研究定位与实现状态**：本节将 Cube → Cup 真机路线组织为 **Failure-Guided Active Data Collection（失败引导的主动数据采集）** 研究框架。首轮通过 Clean、Randomized、Recovery、Color-varied 四种受控示教策略建立初始策略；随后根据自主 Rollout 的失败阶段标签和视频复核结果，确定下一轮应重点补充的状态与动作，再由操作者进行定向专家示教并用于后续训练。当前仓库已提供首轮采集、训练、人工监督评测和失败标签汇总入口，但尚未实现自动失败触发、在线专家接管或纠正轨迹自动聚合；因此这里描述的是**人工在环的迭代采集研究路线**，不是已经完成的自动化 DAgger 系统。当前也尚无本项目新任务的独立实机训练数据、Checkpoint 或评测日志，真机成绩待实测。上方真机视频来自 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，不是本项目实测。实验设计参考原项目的 [PROTOCOL.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/PROTOCOL.md) 和 [SETUP.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/SETUP.md)；第 6.3 节单独引用其真实成功率供背景对照，不能将引用结果当成本项目实测结果。
 
 
 <a id="real-hardware-setup"></a>
@@ -446,46 +460,47 @@ python scripts/real/download_reference_datasets.py --condition clean recovery
 - **空间标记**：在本机安全工作区标记 T1–T10（训练位置）及 E1–E5（从未示教的评测位置）；T6 为固定基准位置。编号只代表实验位置，**参考项目的桌面坐标不可直接用于另一台机器人**。
 - **安全**：检查标定、关节限位、停止入口、实体急停、障碍物和夹爪极性；现有 <code>configs/real/so101.yaml</code> 默认 <code>robot.hardware_confirmed: false</code>，不会自动启用真机。
 
-### 5.3 四组数据采集条件（训练集）
+### 5.3 首轮受控示教策略：建立初始策略与能力覆盖
 
-采用**相同 SmolVLA 基础模型、每组 50 条专家示教**，只改变专家示教数据的采集方式：
+首轮数据采集采用**相同 SmolVLA 基础模型、每组 50 条专家示教**，通过预先定义的采集条件建立可比较的初始数据池。四组数据不是迭代采集的终点，而是用于训练初始策略、观察不同数据分布下的失败表现，并为后续定向补采提供基线。
 
-| 训练组 | 50 条示教的组成 | 研究的问题 |
+| 首轮示教策略 | 50 条示教的组成 | 在迭代采集框架中的作用 |
 |---|---|---|
-| **Clean** | 红色方块固定 T6；50 条正常成功示教 | 基础性能与固定位置泛化边界 |
-| **Randomized** | 红色方块在 T1–T10 各采集 5 条 | 位置覆盖范围与每个位置示教密度的权衡 |
-| **Recovery** | 红色方块固定 T6；其中 20 条包含主动释放、重抓并完成入杯 | 仅增加恢复示教，能否获得可靠恢复能力 |
-| **Color-varied** | 固定 T6；红、橙、黄、蓝、紫各 10 条；绿色留作评测 | 示教颜色多样性是否改善未见颜色表现 |
+| **Clean** | 红色方块固定 T6；50 条正常成功示教 | 建立标准操作基线，观察策略离开训练条件后的失效边界 |
+| **Randomized** | 红色方块在 T1–T10 各采集 5 条 | 提供位置覆盖对照，分析未见位置上的 Reach Failure |
+| **Recovery** | 红色方块固定 T6；其中 20 条包含主动释放、重抓并完成入杯 | 提供恢复行为对照，检验示教中的恢复片段能否迁移到实际掉落状态 |
+| **Color-varied** | 固定 T6；红、橙、黄、蓝、紫各 10 条；绿色留作评测 | 提供外观变化对照，观察颜色变化是否诱发新的失败模式 |
 
-**重要区分**：<code>clean / randomized / recovery / color</code> 是**训练数据条件**；<code>no_motion / reach / recovery</code> 是评测时观察到的**失败行为**，不是独立的数据集 Split。所有训练数据都应隔离存储。Recovery 的主动释放也不等于真实意外掉落，必须单独解释。
+**主动采集的关键在于后续的数据选择，而不只是增加示教数量。** 首轮模型完成真机 Rollout 后，结合成功率、阶段标签和代表性视频，识别当前策略最主要的失败环节；下一轮优先补充与这些失败状态对应的专家纠正示教，而不是不加区分地重复采集正常成功轨迹。
 
-采集前先查看每条示教对应的位置、颜色及是否需要主动释放的计划：
+**当前实现边界**：上述四组首轮采集条件和计划是预先定义的受控实验，操作者按计划布置场景并遥操作录制；现有脚本不会根据某次失败自动生成下一条采集任务，也不会自动在策略执行中切换到专家控制。失败引导的定向补采目前属于研究流程设计，后续需要补充失败状态保存、专家纠正轨迹记录和数据聚合环节。
+
+采集前先查看每条首轮示教对应的位置、颜色及是否需要主动释放的计划：
 
 ~~~bash
 python scripts/real/study_protocol.py --phase collect --condition randomized
 python scripts/real/study_protocol.py --phase collect --condition recovery
 ~~~
 
-参考项目使用 LeRobot 主从遥操作接口。本仓库的采集入口**默认实际执行**（下方仍显式写出 `--execute`，便于直接使用）；如只想检查 50 条采集计划，改用 `--dry-run`。运行前必须核对实际端口、相机、标定、急停与工作区：
+参考项目使用 LeRobot 主从遥操作接口。本仓库的采集入口**默认实际执行**（下方仍显式写出 <code>--execute</code>，便于直接使用）；如只想检查 50 条首轮采集计划，改用 <code>--dry-run</code>。运行前必须核对实际端口、相机、标定、急停与工作区：
 
 ~~~bash
-python scripts/real/record_study.py \
-  --condition clean --repo-id local/real_cube_clean \
-  --dataset-root data/real_cube_clean \
-  --follower-port /dev/ttyACM0 --leader-port /dev/ttyACM1 \
-  --front-idx 0 --wrist-idx 1 \
+python scripts/real/record_study.py \\
+  --condition clean --repo-id local/real_cube_clean \\
+  --dataset-root data/real_cube_clean \\
+  --follower-port /dev/ttyACM0 --leader-port /dev/ttyACM1 \\
+  --front-idx 0 --wrist-idx 1 \\
   --plan-output outputs/real/plans/clean.json --execute
 ~~~
 
-工具不会自动移动物体或切换灯光；每条示教开始前操作者必须按计划人工布置，并核对录制结果。<code>lerobot-record</code> 的具体 CLI 及 LeRobot 版本须在真机环境验证。
-
+工具不会自动移动物体或切换灯光；每条示教开始前操作者必须按计划人工布置，并核对录制结果。<code>lerobot-record</code> 的具体 CLI 及 LeRobot 版本须在真机环境验证。后续定向纠正示教应单独标记采集轮次、来源失败类型、接管/纠正起点和最终结果，避免与首轮普通示教混淆。
 ---
 
 <a id="real-train-eval"></a>
 
-## 6. 真机 SmolVLA 训练、评测与数据质量诊断
+## 6. 真机 SmolVLA 训练、失败诊断与迭代改进
 
-### 6.1 固定训练预算与模型对照
+### 6.1 首轮策略训练与受控对照
 
 每组数据训练两个种子（1000、2000），共 4 × 2 = **8 个独立训练运行**。使用相同基础模型和统一预算（10,000 steps、batch size 32、每 2,000 steps 保存 checkpoint），仅改变示教数据集与种子；请评估最终步数的 checkpoint，不按验证集结果为某一组挑选最优版本。
 
@@ -526,7 +541,7 @@ python scripts/real/evaluate_study.py \
 
 原有的 <code>scripts/real/deploy_policy.py</code> 和 <code>scripts/real/evaluate_policy.py</code> 仍可用于单次安全部署和探索性排查；**正式四条件对照**使用 <code>evaluate_study.py</code>，不能将探索性与注册评测混在同一统计分母里。
 
-### 6.3 结果统计：不仅比较 Loss，还要比较执行行为
+### 6.3 失败模式统计：从整体成功率定位薄弱环节
 
 ~~~bash
 python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
@@ -537,6 +552,28 @@ python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
 汇总按**训练组 × 训练种子 × 评测场景**输出成功次数、成功率和 Wilson 95% 区间，并为每个训练种子追加一行 <code>all_cells</code> 整体成功率；不把两个训练种子的结果直接混成单个结论。预热和中断回合不计入分母。
 
 行为诊断同时包含 **No-Motion Rate、Reach Rate、Grasp Rate、Drop Rate、Re-grasp per Drop、Recovery per Drop**。若尚未完整标注某阶段，指标显示为空，不自动假设失败或成功。当前运行器保存每回合推理延迟、控制步数、限幅次数及操作者标签；**逐步关节轨迹、动作方向角和相机视频并未自动保存**，不能据此声称已经复现参考项目的运动轨迹图。
+
+### 6.4 根据失败诊断制定下一轮主动补采
+
+完成首轮评测后，下一轮数据采集应由**真实失败分布**决定。建议按以下顺序执行：
+
+1. **汇总失败类型**：按训练条件、种子和评测场景统计 No Motion、Reach、Grasp、Drop / Recovery、Placement 等阶段表现。
+2. **复核代表性案例**：结合视频与操作者记录，确认失败确实来自策略，而不是相机断连、机械臂限位、夹爪故障或场景布置错误。
+3. **选择补采目标**：优先处理发生频率高、对任务成功影响大且能通过专家动作纠正的失败类型；保留独立测试位置和测试条件，不将测试数据回流训练。
+4. **采集纠正示教**：在开发场景中复现具有代表性的失败状态，由专家从该状态继续完成任务，并记录失败来源、纠正起点、完整观测/动作序列和最终结果。
+5. **聚合并重新训练**：将纠正数据与原始训练数据合并，保持验证集和最终测试集隔离，再使用相同训练预算与评测协议比较改进前后表现。
+
+| 诊断出的失败模式 | 下一轮优先补充的专家示教 |
+|---|---|
+| **No Motion** | 先排除硬件与控制链路问题；确认属于策略启动失败后，补充相应初始观测下的动作启动与接近示教 |
+| **Reach Failure** | 在训练覆盖范围内选择不同方块位置和接近方向，补充从偏差状态调整到目标的纠正轨迹 |
+| **Grasp Failure** | 补充接触位置、夹爪闭合时机、抓取姿态和抬升阶段的纠正示教 |
+| **Drop / Recovery Failure** | 在真实掉落后的不同位置和朝向采集重新定位、接近、重抓及继续完成任务的示教 |
+| **Placement Failure** | 补充搬运末端的目标对齐、姿态调整、释放和撤离示教 |
+
+**建议的验证对照**：为排除“只是因为训练数据变多”的解释，后续实验至少比较三组：A）原始首轮数据；B）原始数据加等量普通成功示教；C）原始数据加等量失败状态纠正示教。三组使用相同基础模型、训练预算、随机种子和独立测试集。只有 C 组相对 A、B 都取得稳定改善，才能支持“失败引导的定向采集优于单纯增加示教数量”的结论。
+
+**数据记录前提与当前限制**：当前评测日志保存回合级推理信息和操作者阶段标签，但并未自动保存可供逐帧重放的完整相机视频、逐步关节状态与动作序列，也没有在线专家接管和纠正轨迹自动聚合功能。因此，现有 JSONL 可以用于失败类型统计，不能单独用于精确重建每个失败状态。若要开展严格的策略状态分布采集，需要在后续实现中补齐时间同步的观测、机器人状态、策略动作、视频以及专家纠正轨迹记录。
 
 #### 参考项目实测结果（引用，不是本项目的评测结果）
 
