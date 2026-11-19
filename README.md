@@ -354,6 +354,34 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 > **状态与参考**：本节将 Cube → Cup 真机实验重新组织为**待运行的、可复现的研究方案与离线/真机运行代码**。仓库当前未提供这套新任务的实机训练数据、Checkpoint 或评测日志，**本项目自己的真机成功率尚未实测**；上方真机视频来自 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，不是本项目实测。实验设计借鉴原项目的 [PROTOCOL.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/PROTOCOL.md) 和 [SETUP.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/SETUP.md)；第 6.3 节**单独引用其真实成功率**供对照，不能将引用结果当成本项目的实测结果。此方案属于**不同示教数据分布下的离线模仿学习对照实验**，不是 DAgger。
 
+
+### 5.0 参考项目数据集与代码的集成状态
+
+> **说明：参考项目的原始 LeRobot 数据集和原始代码目前均未直接复制或合并进本仓库。** 当前仓库新增的 `record_study.py`、`train_study.py`、`evaluate_study.py` 和 `summarize_study.py` 是依据参考实验流程、针对本仓库目录与运行接口重新编写/适配的实现；它们不等同于原项目源码，也不会自动下载或读取原项目数据集。
+
+**参考项目已公开的数据集（存放在 Hugging Face Hub，不在其 GitHub 仓库内）：**
+
+| 数据条件 | 参考数据集 | 回合数 | 说明 |
+|---|---|---:|---|
+| Clean | [cube-pickup-clean_20260809_105745](https://huggingface.co/datasets/Andresg324/cube-pickup-clean_20260809_105745) | 50 | 保留的固定位置示教 |
+| Randomized | [cube-pickup-randomized_20260809_115825](https://huggingface.co/datasets/Andresg324/cube-pickup-randomized_20260809_115825) | 50 | 10 个训练位置轮换 |
+| Recovery | [cube-pickup-recovery_20260809_141725](https://huggingface.co/datasets/Andresg324/cube-pickup-recovery_20260809_141725) | 50 | 包含主动掉落与重抓示教 |
+| Color-varied | [cube-pickup-color_20260809_183224](https://huggingface.co/datasets/Andresg324/cube-pickup-color_20260809_183224) | 50 | 保留的五色示教；绿色留作测试 |
+| Density（探索性） | [cube-pickup-density_20260822_194111](https://huggingface.co/datasets/Andresg324/cube-pickup-density_20260822_194111) | 50 | 双位置密度探索，不属于四组注册对照 |
+
+参考项目还记录了一份后来被替换的 Color-varied 数据集（`cube-pickup-color_20260809_130649`）；它不是正式保留的 Color-varied 数据，不能与上表中的保留版本混用。数据集名称、回合数及保留状态以参考项目 [RUN_SHEET.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/RUN_SHEET.md) 为准。
+
+**参考项目的原始代码入口（仅作来源参考，未复制进本仓库）：**
+
+- 数据采集：[scripts/record_dataset.sh](https://github.com/Andresg324/so101-vla-data-study/blob/main/scripts/record_dataset.sh)
+- 真机推理：[scripts/run_inference.sh](https://github.com/Andresg324/so101-vla-data-study/blob/main/scripts/run_inference.sh)
+- 训练配置：[configs/](https://github.com/Andresg324/so101-vla-data-study/tree/main/configs)
+- 结果统计与图表：[analysis/analyze_results.py](https://github.com/Andresg324/so101-vla-data-study/blob/main/analysis/analyze_results.py)、[analysis/make_figures.py](https://github.com/Andresg324/so101-vla-data-study/blob/main/analysis/make_figures.py)、[tools/motion_stats.py](https://github.com/Andresg324/so101-vla-data-study/blob/main/tools/motion_stats.py)
+- 实验协议与复现记录：[PROTOCOL.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/PROTOCOL.md)、[SETUP.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/SETUP.md)、[RUN_SHEET.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/RUN_SHEET.md)
+
+**数据兼容性提醒：** 参考数据集的图像特征键为 `observation.images.overhead` 和 `observation.images.wrist`；本仓库新采集入口生成的相机键为 `front` 和 `wrist`。因此，不能把参考数据集路径直接传给当前训练命令并假设可用。若后续要复用参考数据，需先核对 LeRobot 数据集版本、动作/状态字段与相机特征，并显式设置匹配的 `--rename-map`（参考项目使用 `overhead → camera1`、`wrist → camera2`）。参考数据也应作为单独的外部数据来源管理，不要混入本项目新采集的四组数据集。
+
+
 ### 5.1 统一任务与控制变量
 
 - **真机任务**：SO-101 抓取桌面方块并放入固定杯子；统一指令 <code>Pick up the cube and place it in the cup.</code>。
