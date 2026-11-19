@@ -2,6 +2,9 @@
 import json
 import tempfile
 from pathlib import Path
+from contextlib import redirect_stdout
+from io import StringIO
+from unittest.mock import patch
 import unittest
 
 from scripts.real.study_protocol import (collection_plan, evaluation_plan, TRAIN_CONDITIONS,
@@ -94,6 +97,49 @@ class RealStudyProtocol(unittest.TestCase):
             got = read_logs([p])
             self.assertEqual(len(got), 1)
             self.assertEqual(summarize(got)[0]['success_rate_pct'], 100.)
+
+
+    def test_entrypoint_explicit_dry_run_never_starts_external_process(self):
+        from scripts.real.record_study import main as record_main
+        from scripts.real.train_study import main as train_main
+        from scripts.real.evaluate_study import main as evaluate_main, build_parser
+
+        record_args = ['--condition', 'clean', '--repo-id', 'local/study_clean',
+                       '--dataset-root', '/nonexistent/study_clean',
+                       '--follower-port', '/dev/ttyACM0', '--leader-port', '/dev/ttyACM1',
+                       '--front-idx', '0', '--wrist-idx', '1']
+        train_args = ['--condition', 'clean', '--seed', '1000',
+                      '--dataset-root', '/nonexistent/study_clean',
+                      '--repo-id', 'local/study_clean',
+                      '--base-model', '/nonexistent/smolvla_base',
+                      '--output', '/nonexistent/study_train']
+        eval_args = ['--condition', 'clean', '--seed', '1000', '--cell', 'new_positions',
+                     '--checkpoint', '/nonexistent/pretrained_model',
+                     '--training-manifest', '/nonexistent/study_manifest.json',
+                     '--output', '/nonexistent/results.jsonl']
+        self.assertTrue(build_parser().parse_args(eval_args).execute)
+        self.assertFalse(build_parser().parse_args(eval_args + ['--dry-run']).execute)
+
+        with patch('subprocess.run', side_effect=AssertionError('external process launched')), \\
+             patch('builtins.input', side_effect=AssertionError('prompted for real robot')), \\
+             redirect_stdout(StringIO()):
+            record_main(record_args + ['--dry-run'])
+            train_main(train_args + ['--dry-run'])
+            evaluate_main(eval_args + ['--dry-run'])
+
+        # Without --dry-run, the entrypoints enter execution checks;
+        # they must still refuse missing resources or request human confirmation.
+        with tempfile.TemporaryDirectory() as tmp, \\
+             patch('builtins.input', side_effect=RuntimeError('operator confirmation reached')), \\
+             redirect_stdout(StringIO()):
+            args = list(record_args)
+            args[args.index('/nonexistent/study_clean')] = str(Path(tmp) / 'new_dataset')
+            with self.assertRaisesRegex(RuntimeError, 'operator confirmation reached'):
+                record_main(args)
+        with redirect_stdout(StringIO()), self.assertRaises(SystemExit):
+            train_main(train_args)
+        with redirect_stdout(StringIO()), self.assertRaises(FileNotFoundError):
+            evaluate_main(eval_args)
 
 
 if __name__ == '__main__':
