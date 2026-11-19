@@ -352,7 +352,7 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 ## 5. 真机平台与示教数据策略研究
 
-> **状态与参考**：本节将 Cube → Cup 真机实验重新组织为**待运行的、可复现的研究方案与离线/真机运行代码**。仓库当前未提供这套新任务的实机训练数据、Checkpoint、评测日志或本项目成功率；上方真机视频来自 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，不是本项目实测。实验设计借鉴该项目的 [PROTOCOL.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/PROTOCOL.md) 和 [SETUP.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/SETUP.md)，不复制其结果。此方案属于**不同示教数据分布下的离线模仿学习对照实验**，不是 DAgger。
+> **状态与参考**：本节将 Cube → Cup 真机实验重新组织为**待运行的、可复现的研究方案与离线/真机运行代码**。仓库当前未提供这套新任务的实机训练数据、Checkpoint 或评测日志，**本项目自己的真机成功率尚未实测**；上方真机视频来自 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，不是本项目实测。实验设计借鉴原项目的 [PROTOCOL.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/PROTOCOL.md) 和 [SETUP.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/SETUP.md)；第 6.3 节**单独引用其真实成功率**供对照，不能将引用结果当成本项目的实测结果。此方案属于**不同示教数据分布下的离线模仿学习对照实验**，不是 DAgger。
 
 ### 5.1 统一任务与控制变量
 
@@ -382,7 +382,7 @@ python scripts/real/study_protocol.py --phase collect --condition randomized
 python scripts/real/study_protocol.py --phase collect --condition recovery
 ~~~
 
-参考项目使用 LeRobot 主从遥操作接口。本仓库提供**默认 dry-run** 的配套入口，先检查打印出的命令和 50 条计划，再按实际端口、相机及标定执行：
+参考项目使用 LeRobot 主从遥操作接口。本仓库的采集入口**默认实际执行**（下方仍显式写出 `--execute`，便于直接使用）；如只想检查 50 条采集计划，改用 `--dry-run`。运行前必须核对实际端口、相机、标定、急停与工作区：
 
 ~~~bash
 python scripts/real/record_study.py \
@@ -390,8 +390,7 @@ python scripts/real/record_study.py \
   --dataset-root data/real_cube_clean \
   --follower-port /dev/ttyACM0 --leader-port /dev/ttyACM1 \
   --front-idx 0 --wrist-idx 1 \
-  --plan-output outputs/real/plans/clean.json
-# 硬件、工作台、数据路径检查无误后，才在命令末尾显式加 --execute
+  --plan-output outputs/real/plans/clean.json --execute
 ~~~
 
 工具不会自动移动物体或切换灯光；每条示教开始前操作者必须按计划人工布置，并核对录制结果。<code>lerobot-record</code> 的具体 CLI 及 LeRobot 版本须在真机环境验证。
@@ -411,11 +410,10 @@ python scripts/real/train_study.py \
   --condition clean --seed 1000 \
   --dataset-root data/real_cube_clean --repo-id local/real_cube_clean \
   --base-model /path/to/local/smolvla_base \
-  --output outputs/train/real_clean_seed1000
-# 计划核对并确保本地有 50 条示教后，追加 --execute 才调用 lerobot-train
+  --output outputs/train/real_clean_seed1000 --execute
 ~~~
 
-训练入口检查 LeRobotDataset 中的回合数及六维真机关节特征；运行后在对应训练输出目录生成 <code>study_manifest.json</code>，用于关联训练条件、种子及评测日志。全部数据与权重保持本地，不默认上传 Hub。现有 <code>scripts/train/finetune_smolvla.sh</code> 仍用于仿真/通用 SmolVLA 训练；研究协议以新的 <code>train_study.py</code> 为准。
+训练入口默认实际运行（可用 `--dry-run` 仅输出命令），并检查 LeRobotDataset 中的回合数及六维真机关节特征；运行后在对应训练输出目录生成 <code>study_manifest.json</code>，用于关联训练条件、种子及评测日志。全部数据与权重保持本地，不默认上传 Hub。现有 <code>scripts/train/finetune_smolvla.sh</code> 仍用于仿真/通用 SmolVLA 训练；研究协议以新的 <code>train_study.py</code> 为准。
 
 ### 6.2 五类统一评测场景
 
@@ -429,7 +427,7 @@ python scripts/real/train_study.py \
 | <code>different_object</code> | 未参与训练的绿色方块 T6 | 颜色/外观泛化；No Motion 只是可能的失败现象 |
 | <code>distractors</code> | 红色方块 T6、增加非目标物体 | 抗干扰能力 |
 
-评测同样需要操作者逐回合复位场景、确认目标及安全状态，并在结束后人工填写 <code>success</code> 和可观察到的阶段标签（<code>started</code>、<code>reached</code>、<code>grasped</code>、<code>dropped</code>、<code>regrasped</code> 等）。**不能以动作已下发或视频看起来正常代替成功判定。**
+评测入口默认实际运行（可用 `--dry-run` 仅输出计划）；仍需要操作者逐回合复位场景、确认目标及安全状态，并在结束后人工填写 <code>success</code> 和可观察到的阶段标签（<code>started</code>、<code>reached</code>、<code>grasped</code>、<code>dropped</code>、<code>regrasped</code> 等）。**不能以动作已下发或视频看起来正常代替成功判定。**
 
 ~~~bash
 python scripts/real/study_protocol.py --phase evaluate --cell new_positions
@@ -437,8 +435,7 @@ python scripts/real/evaluate_study.py \
   --condition clean --seed 1000 --cell new_positions \
   --checkpoint outputs/train/real_clean_seed1000/checkpoints/010000/pretrained_model \
   --training-manifest outputs/train/real_clean_seed1000/study_manifest.json \
-  --output outputs/real/eval_clean_s1000_new_positions.jsonl
-# 核对标定、checkpoint 与 manifest 后，追加 --execute 才连接机器人并开始评测
+  --output outputs/real/eval_clean_s1000_new_positions.jsonl --execute
 ~~~
 
 原有的 <code>scripts/real/deploy_policy.py</code> 和 <code>scripts/real/evaluate_policy.py</code> 仍可用于单次安全部署和探索性排查；**正式四条件对照**使用 <code>evaluate_study.py</code>，不能将探索性与注册评测混在同一统计分母里。
@@ -455,12 +452,24 @@ python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
 
 行为诊断同时包含 **No-Motion Rate、Reach Rate、Grasp Rate、Drop Rate、Re-grasp per Drop、Recovery per Drop**。若尚未完整标注某阶段，指标显示为空，不自动假设失败或成功。当前运行器保存每回合推理延迟、控制步数、限幅次数及操作者标签；**逐步关节轨迹、动作方向角和相机视频并未自动保存**，不能据此声称已经复现参考项目的运动轨迹图。
 
-| 真机训练组 | 标准场景 | 新位置 | 低光照 | 绿色方块 | 干扰物 | Overall (75/seed) |
-|---|---|---|---|---|---|---|
-| Clean | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 |
-| Randomized | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 |
-| Recovery | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 |
-| Color-varied | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 |
+#### 参考项目实测结果（引用，不是本项目的评测结果）
+
+下面数据**原样按成功回合数**整理自 [Andresg324/so101-vla-data-study — Table 1](https://github.com/Andresg324/so101-vla-data-study/blob/main/figures/table1.md)。每个训练条件在每个种子的五类场景中各计分 15 回合（共 75 回合/种子）；第 0 回合预热不计分。表中的成功率为 **Task Success Rate**，并非单独的 Reach、No Motion 或 Recovery 指标。
+
+| 训练数据策略 | Seed | 标准场景 | 新位置 | 低光照 | 绿色方块 | 干扰物 | Overall |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **Clean** | 1000 | 15/15 | 0/15 | 12/15 | 15/15 | 13/15 | **55/75 (73.3%)** |
+| **Clean** | 2000 | 15/15 | 0/15 | 9/15 | 12/15 | 10/15 | **46/75 (61.3%)** |
+| **Randomized** | 1000 | 6/15 | 0/15 | 5/15 | 0/15 | 1/15 | **12/75 (16.0%)** |
+| **Randomized** | 2000 | 6/15 | 0/15 | 5/15 | 2/15 | 0/15 | **13/75 (17.3%)** |
+| **Recovery** | 1000 | 8/15 | 0/15 | 7/15 | 11/15 | 13/15 | **39/75 (52.0%)** |
+| **Recovery** | 2000 | 9/15 | 0/15 | 5/15 | 5/15 | 12/15 | **31/75 (41.3%)** |
+| **Color-varied** | 1000 | 13/15 | 0/15 | 12/15 | 15/15 | 13/15 | **53/75 (70.7%)** |
+| **Color-varied** | 2000 | 12/15 | 0/15 | 14/15 | 15/15 | 15/15 | **56/75 (74.7%)** |
+
+只做描述性汇总（两种子共 150 回合/条件）时：Clean **101/150（67.3%）**、Randomized **25/150（16.7%）**、Recovery **70/150（46.7%）**、Color-varied **109/150（72.7%）**。**这不是“改进前 → 改进后”的实验，也不能证明所有数据增强都会提升性能。** 原项目的两种子分析与统计检验应以其原文为准。
+
+**本仓库实测结果**：目前仍缺少在本项目设备上完成的 Cube → Cup 训练、Rollout 及标签数据，因此无法生成属于本项目的成功率。上面这张表只用于展示与对照参考项目的结果；后续可用 `scripts/real/summarize_study.py` 从本项目真实 JSONL 日志生成独立结果。
 
 **仿真与真机的比较边界**：仿真 SmolVLA 完成“红方块→蓝盒子”，真机是“方块→杯子”，任务、接触动力学及评分环境不同；可以在项目内并列展示，但不可直接把两者的百分比差异解释为严格的 Sim-to-Real Gap。参考项目的重要结论是“示教多样性不一定提高整体成功率”，本项目会以独立数据验证，而不是预设 Randomized 或 Recovery 优于 Clean。
 
