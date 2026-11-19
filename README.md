@@ -485,11 +485,11 @@ python scripts/real/study_protocol.py --phase collect --condition recovery
 参考项目使用 LeRobot 主从遥操作接口。本仓库的采集入口**默认实际执行**（下方仍显式写出 <code>--execute</code>，便于直接使用）；如只想检查 50 条首轮采集计划，改用 <code>--dry-run</code>。运行前必须核对实际端口、相机、标定、急停与工作区：
 
 ~~~bash
-python scripts/real/record_study.py \\
-  --condition clean --repo-id local/real_cube_clean \\
-  --dataset-root data/real_cube_clean \\
-  --follower-port /dev/ttyACM0 --leader-port /dev/ttyACM1 \\
-  --front-idx 0 --wrist-idx 1 \\
+python scripts/real/record_study.py \
+  --condition clean --repo-id local/real_cube_clean \
+  --dataset-root data/real_cube_clean \
+  --follower-port /dev/ttyACM0 --leader-port /dev/ttyACM1 \
+  --front-idx 0 --wrist-idx 1 \
   --plan-output outputs/real/plans/clean.json --execute
 ~~~
 
