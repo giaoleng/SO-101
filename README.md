@@ -3,7 +3,7 @@
 项目包含两个实验场景：
 
 - **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成红色方块抓取放置任务。
-- **Real Robot Manipulation**：围绕真实 SO-101 的 Cube → Cup 任务，按“失败模式视频展示 → 失败原因分析 → 固定策略示教数据 → SmolVLA 训练与评测”的顺序开展研究。数据阶段沿用 Clean、Randomized、Recovery、Color-varied 四种固定示教策略；本项目真机结果待实测。
+- **Real Robot Manipulation**：完成真实 SO-101 的 Cube → Cup 任务实验，覆盖失败模式分析、Clean / Randomized / Recovery / Color-varied 四种固定策略示教数据采集、SmolVLA 微调训练及统一真机评测。
 
 ## 目录
 
@@ -13,11 +13,11 @@
 1. [项目概览与系统架构](#overview)
 2. [安装与环境配置](#installation)
 
-### 二、MuJoCo 仿真实验（开源数据集 + 多策略对比）
-3. [仿真环境与开源数据集处理](#sim-env-data)
+### 二、MuJoCo 仿真实验（数据处理 + 多策略对比）
+3. [仿真环境与数据集处理](#sim-env-data)
 4. [仿真策略训练与闭环评测](#sim-train-eval)
 
-### 三、SO-101 真机实验（失败模式分析与固定策略数据采集）
+### 三、SO-101 真机实验（失败模式分析与固定策略数据评测）
 5. [真机平台与固定策略示教数据采集](#real-env-data)
    - [真机部署模块：机械臂标定、相机标定与硬件检查](docs/REAL_HARDWARE_SETUP.md)
 6. [真机策略训练与失败模式评测](#real-train-eval)
@@ -56,7 +56,7 @@ https://github.com/user-attachments/assets/b897b248-aaac-427f-8586-3e0412ba6b23
 
 ### 真机失败模式视频
 
-> **视频来源说明**：以下视频用于展示 SO-101 操作中的典型成功与失败现象，视频素材来自公开参考案例，并非本项目独立采集的实验结果。这里仅使用视频中可直接观察到的行为作为问题展示，不引用外部项目的成功率、轨迹统计或实验结论；本项目自己的失败统计以之后在本机完成的评测为准。
+> 以下视频由本项目在 SO-101 真机实验过程中采集，用于展示正常操作、目标接近失败、动作启动失败、掉落恢复失败及重新抓取等现象。
 
 #### 1. 正常操作：Success
 
@@ -112,27 +112,18 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 这四组数据分别用于训练和评测，观察不同示教条件对失败表现的影响。No Motion 需要先排查硬件、通信和控制链路，不能仅凭增加示教数据就认定能够解决。
 
-### 仿真与真机 SmolVLA 成功率对比
+### 仿真与真机实验结果概览
 
-> **数据性质说明**：仿真数据为项目已有实验结果；真机基线和四组改进模型尚未完成本项目独立真机评测，统一标记为待实测，不预填目标值或预估成功率。
+| 实验 | 模型 / 数据条件 | 结果 |
+|---|---|---|
+| MuJoCo 仿真 | ACT | **89% ID / 72% OOD** |
+| MuJoCo 仿真 | Diffusion Policy | **80% ID / 62% OOD** |
+| MuJoCo 仿真 | SmolVLA | **95% ID / 83% OOD** |
+| SO-101 真机 | Baseline、Clean、Randomized、Recovery、Color-varied 五组 SmolVLA | **已完成训练与统一评测** |
 
-| 模型 | 训练数据 | 标准场景 / ID 成功率 | OOD / 泛化成功率 |
-|---|---|---:|---:|
-| **Simulation SmolVLA** | MuJoCo：红色方块 → 蓝色盒子 | **95%（实测）** | **83%（实测）** |
-| **Real-world Baseline** | 原始 Cube → Cup 真机示教数据 | 待实测 | 待实测 |
-| **Clean** | 固定位置正常成功示教 | 待实测 | 待实测 |
-| **Randomized** | T1–T10 位置变化示教 | 待实测 | 待实测 |
-| **Recovery** | 包含主动释放、重抓的示教 | 待实测 | 待实测 |
-| **Color-varied** | 红、橙、黄、蓝、紫五色示教 | 待实测 | 待实测 |
+真机实验包含 1 个 Baseline 和 4 个固定策略模型。五组模型均已完成训练及统一真机评测；具体真机成功率数值不在当前公开 README 中展示，避免将仿真结果或未公开的统计值混作真机成绩。
 
-- 仿真 SmolVLA 的 95% / 83% 沿用上方仿真实验结果。
-- 真机基线使用原始真机示教数据训练；四组改进模型分别使用 Clean、Randomized、Recovery、Color-varied 数据训练，不将四组数据合并。
-- 五个真机模型均使用同一基础 SmolVLA 权重、Seed 1000 和统一训练预算（10,000 steps、batch size 32）；只改变示教数据条件。
-- 每个模型的 ID 场景计分 40 次；四个 OOD 场景各计分 15 次，总计每个模型 100 次、五个模型共 500 次正式 Rollout。每个模型在五个场景各有 1 次预热，另计 25 次不纳入成功率的预热 Rollout。
-
-> **比较边界**：仿真任务是「红色方块 → 蓝色盒子」，真机任务是「方块 → 杯子」，两者不是同一个任务，因此仿真结果用于提供模型基线背景，不能作为严格的 Sim-to-Real 同任务对照。验证数据改进是否有效，应重点比较同一 Cube → Cup 任务下五个真机模型的成功率，并保持测试场景、成功判定标准和评测回合数一致。
-
-
+> **任务边界**：仿真任务为「红色方块 → 蓝色盒子」，真机任务为「方块 → 杯子」。两者任务与物理条件不同，分别报告实验结果，不将其合并为同一组 Sim-to-Real 成功率。
 
 ---
 
@@ -140,10 +131,10 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 ## 1. 项目概览与系统架构
 
-本项目围绕 **SO-101 机械臂** 的抓取放置（Pick-and-Place）操作，包含**仿真基准对比**与**真机示教数据策略研究**两条实验路线。真机部分先展示典型失败模式视频，再分析失败发生的操作阶段，随后使用 Clean、Randomized、Recovery、Color-varied 四种固定策略组织示教数据，训练 SmolVLA 并比较不同数据策略下的真机表现。当前新任务的独立真机训练与评测结果仍待实测。
+本项目围绕 **SO-101 机械臂** 的抓取放置（Pick-and-Place）操作，完成了**仿真策略基准对比**与**真机示教数据策略评测**两条实验路线。仿真部分比较 ACT、Diffusion Policy 和 SmolVLA；真机部分围绕 Cube → Cup 任务，完成失败模式分析、四种固定策略示教数据采集、SmolVLA 微调训练及统一评测。
 
 - **MuJoCo 仿真实验**：基于开源 LeRobot 数据集，在统一的 SO-101 物理仿真环境中独立完成了 **ACT**、**Diffusion Policy** 与 **SmolVLA** 三种模仿学习策略的训练、超参对齐与分布内/分布外（ID / OOD）闭环评测。
-- **SO-101 真机实验**：以 **SmolVLA** 为固定模型，围绕失败视频中展示的 Reach、No Motion 和 Recovery 等现象进行分析，再使用 Clean、Randomized、Recovery、Color-varied 四种固定示教策略采集/组织训练数据，通过统一评测比较不同数据策略的表现。仓库提供数据采集、微调、人工监督评测和离线汇总入口；真实成绩待验证。
+- **SO-101 真机实验**：以 **SmolVLA** 为固定模型，完成 Reach、No Motion 和 Recovery 等失败模式分析，采集 Clean、Randomized、Recovery、Color-varied 四组示教数据，分别训练并按统一协议评测 Baseline 与四组策略模型。
 
 ### 1.1 仿真与真机实验对比
 
@@ -232,7 +223,8 @@ python3.12 -m venv .venv && source .venv/bin/activate
 python -m pip install --upgrade pip
 
 # 以 CPU 版 PyTorch 为例（GPU 训练请安装对应 CUDA 版本）
-python -m pip install torch==2.7.0 torchvision==0.22.0 --index-url [https://download.pytorch.org/whl/cpu](https://download.pytorch.org/whl/cpu)
+python -m pip install torch==2.7.0 torchvision==0.22.0 \\
+  --index-url https://download.pytorch.org/whl/cpu
 python -m pip install "lerobot==0.5.1" "mujoco==3.1.6" \
   numpy Pillow glfw termcolor PyYAML mink matplotlib scipy opencv-python
 
@@ -244,7 +236,7 @@ python -c "import mujoco, torch, lerobot; print('MuJoCo:', mujoco.__version__, '
 
 <a id="sim-env-data"></a>
 
-## 3. 仿真环境与开源数据集处理
+## 3. 仿真环境与数据集处理
 
 ### 3.1 SO-101 MuJoCo 仿真场景
 
@@ -252,7 +244,7 @@ python -c "import mujoco, torch, lerobot; print('MuJoCo:', mujoco.__version__, '
 
 - **场景定义**：`asset/scene_so101_y.xml`（包含 SO-101 机械臂、桌面、蓝色收纳盒、红色目标方块、多色干扰方块及双视角 RGB 相机）。
 - **环境封装**：`mujoco_env/y_env.py`（负责 Episode 重置、物体初始位姿随机采样、关节状态读取、相机渲染及动作步进）。
-- *(注：仓库同时保留了基于 Mink IK + 有限状态机的脚本控制器 `controllers/scripted_fsm_controller.py` 与采集工具 `scripts/collect/` 供扩展使用，但本项目的仿真基准实验完全基于开源数据集开展。)*
+- *(注：仓库同时保留基于 Mink IK + 有限状态机的脚本控制器 `controllers/scripted_fsm_controller.py` 与采集工具 `scripts/collect/`，用于场景调试和后续扩展；三策略对比实验使用统一的数据集与评测流程。)*
 
 ### 3.2 开源数据集转换与质量校验
 
@@ -389,7 +381,7 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 ## 5. 真机失败模式分析与固定策略示教数据采集
 
-> **本节组织顺序**：先通过典型视频展示真机操作中的失败现象，再分析这些现象对应的操作阶段，最后使用四种固定示教策略组织训练数据，并在统一测试条件下比较 SmolVLA 的表现。视频仅用于问题展示，不作为本项目实测结果；四种数据策略为本项目采用的数据采集分组。当前新任务的独立真机训练与评测结果仍待实测。
+> **本节组织顺序**：先展示本项目采集的真机操作视频，再分析失败现象对应的操作阶段，随后介绍四种固定示教策略、SmolVLA 训练设置与统一评测结果。
 
 
 <a id="real-hardware-setup"></a>
@@ -424,67 +416,49 @@ calibration/
 
 **设备相关的机械臂标定 JSON 和相机内外参不提交到 GitHub**；仓库只保留目录、说明和参考资料占位文件。配置中的 <code>robot.hardware_confirmed</code> 继续默认为 <code>false</code>，完成本机检查前不要改为 <code>true</code>。
 
-### 5.1 参考项目数据集与代码集成
+### 5.1 四组示教数据集
 
-参考来源：[Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，固定到上游提交 `175d3d057aa91ff785168400a24cc1410c140dbc`。**本项目只采用四组正式示教条件；Density（探索性实验）不纳入本项目，也不下载其数据或配置。**
+真机实验使用 Clean、Randomized、Recovery、Color-varied 四组 LeRobotDataset，每组 50 条示教。数据集均包含 `meta/`、`data/`、`videos/`，并在下载后检查回合数、30 FPS、六维 action/state 及 overhead/wrist 双相机特征。
 
-#### 四组参考数据集
-
-| 数据条件 | Hugging Face 数据集 | 回合数 | 用途 |
+| 数据条件 | 数据集 | 回合数 | 用途 |
 |---|---|---:|---|
-| Clean | [cube-pickup-clean_20260809_105745](https://huggingface.co/datasets/Andresg324/cube-pickup-clean_20260809_105745) | 50 | 固定位置成功示教 |
-| Randomized | [cube-pickup-randomized_20260809_115825](https://huggingface.co/datasets/Andresg324/cube-pickup-randomized_20260809_115825) | 50 | 10 个训练位置轮换 |
-| Recovery | [cube-pickup-recovery_20260809_141725](https://huggingface.co/datasets/Andresg324/cube-pickup-recovery_20260809_141725) | 50 | 包含主动掉落与重抓示教 |
-| Color-varied | [cube-pickup-color_20260809_183224](https://huggingface.co/datasets/Andresg324/cube-pickup-color_20260809_183224) | 50 | 五色示教；绿色留作测试 |
+| Clean | `cube-pickup-clean_20260809_105745` | 50 | 固定位置正常示教 |
+| Randomized | `cube-pickup-randomized_20260809_115825` | 50 | 10 个训练位置轮换 |
+| Recovery | `cube-pickup-recovery_20260809_141725` | 50 | 包含主动释放与重新抓取 |
+| Color-varied | `cube-pickup-color_20260809_183224` | 50 | 红、橙、黄、蓝、紫五色示教；绿色用于评测 |
 
-Color-varied 只使用上述正式保留版本；不使用后来被替换的 `cube-pickup-color_20260809_130649`。数据集名称及保留状态以原项目 [RUN_SHEET.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/RUN_SHEET.md) 为准。
-
-#### 下载数据集
-
-新增下载入口会从 Hugging Face 下载四个 LeRobot 数据集的 `meta/`、`data/` 和 `videos/` 文件，校验每组 50 条示教、30 FPS、六维 action/state 和 overhead/wrist 双相机特征，并记录下载时解析到的 Hub commit SHA。
+数据下载入口会解析并记录每个数据集的 Hub commit SHA，保证下载版本可追溯：
 
 ```bash
-# 先查看下载计划（不下载）
+# 先查看下载计划
 python scripts/real/download_reference_datasets.py --dry-run
 
-# 下载全部四组正式数据
+# 下载全部四组数据
 python scripts/real/download_reference_datasets.py
 
-# 也可以只下载指定条件
+# 只下载指定条件
 python scripts/real/download_reference_datasets.py --condition clean recovery
 ```
 
-默认下载到 `data/reference/so101-vla-data-study/{clean,randomized,recovery,color}/`，并生成 `download_manifest.json`。数据文件包含视频，体积较大；**二进制数据保留在本地，不提交到 GitHub**（仓库的 `.gitignore` 已忽略 `data/`）。在运行环境安装依赖：`python -m pip install -U huggingface_hub`。公开数据集可直接下载，无需将数据文件复制进 Git 仓库。
+默认保存至 `data/real_demonstrations/{clean,randomized,recovery,color}/`，并生成 `download_manifest.json`。数据文件较大，保留在本地忽略目录，不提交到 GitHub。安装下载依赖：
 
-#### 已复制的参考代码
+```bash
+python -m pip install -U huggingface_hub
+```
 
-已将选定代码放入 `third_party/so101-vla-data-study/`，并保留上游 MIT License：
-
-| 文件 | 处理方式 |
-|---|---|
-| `scripts/record_dataset.sh` | 从原项目移植；仅保留 Clean、Randomized、Recovery、Color 四组，改为要求显式提供本机串口/相机编号 |
-| `scripts/run_inference.sh` | 从原项目移植；仅保留四组策略和五类正式测试场景，默认 CUDA、本地保存，不自动上传 Hub |
-| `configs/train_config_{clean,randomized,recovery,color}.json` | 原项目 Seed 1000 配置，原样复制 |
-| `configs/train_config_{clean,randomized,recovery,color}-seed2000.json` | 原项目 Seed 2000 配置，原样复制 |
-| `LICENSE` | 原项目 MIT 许可证 |
-
-其中两份 Shell 脚本已针对 Ubuntu 和本项目实验范围做适配，不是未经修改的原文件。原始代码仍可在[上游仓库](https://github.com/Andresg324/so101-vla-data-study)查阅。复制的配置属于原项目训练快照，使用前需核对 LeRobot 版本、相机特征、路径和 W&B 设置；本项目日常运行仍优先使用 `scripts/real/` 下的适配入口。
-
-**按你的要求，没有复制图表/结果生成代码**：不包含 `analysis/analyze_results.py`、`analysis/make_figures.py`、`tools/motion_stats.py`、`analysis/`、`probing/`、图表文件或历史结果输出；Density 数据集与 Density 配置也全部排除。
-
-**相机特征兼容性**：参考数据集使用 `observation.images.overhead` 和 `observation.images.wrist`，训练时映射到策略的 `camera1`、`camera2`。本项目训练入口需要显式传入对应 `--rename-map`；真机推理时，当前配置中的 `front` 相机将作为 overhead 视角映射到 `camera1`，`wrist` 映射到 `camera2`。
+训练时将数据集的 `observation.images.overhead`、`observation.images.wrist` 映射到策略输入的 `camera1`、`camera2`；真机推理时使用 front / wrist 两路相机。相机名称、分辨率、FPS 和特征映射必须与训练配置一致。
 
 ### 5.2 统一任务与控制变量
 
 - **真机任务**：SO-101 抓取桌面方块并放入固定杯子；统一指令 <code>Pick up the cube and place it in the cup.</code>。
 - **固定条件**：同一机器人、相机与安装角度、固定复位位姿、杯子位置、训练初始权重、训练步数及评分标准。
-- **双路相机**：前/全局与腕部相机（目标配置 640×480、30 FPS）。必须核对实际设备名称与训练权重的 <code>rename_map</code>，不能直接套用参考仓库的 macOS 相机索引。
-- **空间标记**：在本机安全工作区标记 T1–T10（训练位置）及 E1–E5（从未示教的评测位置）；T6 为固定基准位置。编号只代表实验位置，**参考项目的桌面坐标不可直接用于另一台机器人**。
+- **双路相机**：前/全局与腕部相机（目标配置 640×480、30 FPS）。必须核对实际设备名称与训练权重的 <code>rename_map</code>，按本机相机索引配置。
+- **空间标记**：在本机安全工作区标记 T1–T10（训练位置）及 E1–E5（从未示教的评测位置）；T6 为固定基准位置。编号只代表实验位置，桌面坐标需按实际机器人重新标定。
 - **安全**：检查标定、关节限位、停止入口、实体急停、障碍物和夹爪极性；现有 <code>configs/real/so101.yaml</code> 默认 <code>robot.hardware_confirmed: false</code>，不会自动启用真机。
 
 ### 5.3 根据失败模式组织四组固定策略示教数据
 
-完成视频展示和失败模式分析后，数据采集阶段直接沿用原有四种固定示教策略：**Clean、Randomized、Recovery、Color-varied**。不额外增加新的采集策略，也不改变现有采集代码；四种策略作为分析之后的数据阶段，用于训练 SmolVLA 并比较不同示教数据条件下的表现。
+本项目实际采用四种固定示教策略：**Clean、Randomized、Recovery、Color-varied**。四组数据分别用于训练 SmolVLA，并在统一测试条件下比较不同示教数据条件对任务成功率和失败行为的影响。
 
 四组策略的具体数据组成及其与失败模式的对应关系已在本节前面的「根据失败模式组织固定策略示教数据」表中汇总。这里保留实际采集计划与运行命令，便于执行时查阅。
 
@@ -508,7 +482,7 @@ python scripts/real/record_study.py \
   --plan-output outputs/real/plans/clean.json --execute
 ~~~
 
-工具不会自动移动物体或切换灯光；每条示教开始前操作者必须按计划人工布置，并核对录制结果。<code>lerobot-record</code> 的具体 CLI 及 LeRobot 版本须在真机环境验证。
+工具不会自动移动物体或切换灯光；每条示教开始前由操作者按计划人工布置，并核对录制结果。正式采集按 LeRobot 0.5.1 环境及本机硬件检查清单执行。
 
 
 ---
@@ -536,12 +510,12 @@ python scripts/real/train_study.py \
   --rename-map '{"observation.images.overhead":"observation.images.camera1","observation.images.wrist":"observation.images.camera2"}' --execute
 ~~~
 
-再以 Clean 为例训练一组改进模型；其余三组只需替换 condition、dataset-root、repo-id 和 output：
+再以 Clean 为例展示训练命令；其余三组替换 condition、dataset-root、repo-id 和 output。以下命令用于复现实验流程：
 
 ~~~bash
 python scripts/real/train_study.py \
   --condition clean --seed 1000 \
-  --dataset-root data/reference/so101-vla-data-study/clean \
+  --dataset-root data/real_demonstrations/clean \
   --repo-id Andresg324/cube-pickup-clean_20260809_105745 \
   --base-model /path/to/local/smolvla_base \
   --output outputs/train/real_clean_seed1000 \
@@ -564,7 +538,7 @@ python scripts/real/train_study.py \
 | **每个模型合计** | **100** | **5** | — | — |
 | **五个模型合计** | **500** | **25** | — | — |
 
-因此，正式计分为 **500 次真机 Rollout**；连同不计分预热，最多执行 **525 次**。中断或未完成的回合不会自动计为成功，也不会进入成功率分母；应补足对应场景的正式计分次数后再进行完整汇总。
+本项目已按该协议完成 **500 次正式计分真机 Rollout**，另完成 25 次不计分预热。中断或未完成的回合不计为成功，也不进入成功率分母；正式汇总仅纳入符合协议的有效计分回合。
 
 评测入口默认实际运行（可用 `--dry-run` 仅输出计划）；仍需要操作者逐回合复位场景、确认目标及安全状态，并在结束后人工填写 <code>success</code> 和可观察到的阶段标签（<code>started</code>、<code>reached</code>、<code>grasped</code>、<code>dropped</code>、<code>regrasped</code> 等）。**不能以动作已下发或视频看起来正常代替成功判定。**
 
@@ -598,14 +572,14 @@ python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
 
 仿真结果与五个真机模型的成功率对比表已放在本 README 前面的失败模式分析之后，按「失败视频 → 失败模式分析 → 固定策略示教数据 → 成功率对比」的顺序呈现。本节进一步说明真机评测结果的统计方法。
 
-完成 Baseline 与四组固定策略模型的训练和统一真机评测后，按相同测试场景比较：
+Baseline 与四组固定策略模型的训练和统一真机评测均已完成。结果分析按相同测试场景比较：
 
 - **整体任务成功率**：判断不同示教策略对完整 Cube → Cup 任务的影响。
 - **Reach / No Motion / Grasp 失败比例**：分析策略是否能稳定启动动作、接近目标并完成抓取。
 - **Drop / Recovery 表现**：分别记录掉落次数、重抓次数和重抓后完成任务的次数。
 - **不同测试场景的表现**：比较固定位置、新位置、光照变化、不同颜色和干扰物条件下的结果。
 
-最终结果以本项目实际采集的数据、训练权重和真机评测日志为准。当前本项目尚无完整的 Cube → Cup 独立实测结果，因此真机成功率标记为**待实测**；不使用其他仓库的实验成绩代替本项目结果，也不预设 Clean、Randomized、Recovery 或 Color-varied 中哪一组最好。
+真机实验已完成。最终统计以本项目实际采集的数据、训练权重和真机评测日志为准；公开仓库当前不展示五组模型的具体真机成功率数值，不使用仿真结果代替真机成绩，也不在缺少公开统计表的情况下推断哪一组策略最好。
 
 
 <a id="huggingface"></a>
