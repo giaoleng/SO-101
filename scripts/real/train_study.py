@@ -88,9 +88,29 @@ def main(argv=None):
     env['HF_HUB_OFFLINE'] = '1'
     env['TRANSFORMERS_OFFLINE'] = '1'
     subprocess.run(cmd, env=env, check=True)
+    checkpoint = args.output / 'checkpoints' / '010000' / 'pretrained_model'
+    if not (checkpoint / 'config.json').is_file():
+        raise FileNotFoundError(f'Expected final checkpoint missing: {checkpoint}')
+    # Package feature schema with the same image rename map used at training.
+    snapshot = dict(info)
+    features = dict(info['features'])
+    for old_key, new_key in rename.items():
+        if old_key in features and old_key != new_key:
+            if new_key in features:
+                raise ValueError(f'Duplicate training image feature after rename: {new_key}')
+            features[new_key] = features.pop(old_key)
+    snapshot['features'] = features
+    snapshot['action_semantics'] = 'so101_degrees_gripper_percent'
+    schema_path = checkpoint / 'dataset_info.json'
+    if not schema_path.exists():
+        with schema_path.open('x', encoding='utf-8') as fh:
+            json.dump(snapshot, fh, ensure_ascii=False, indent=2)
+    elif json.loads(schema_path.read_text(encoding='utf-8')).get('features') != features:
+        raise ValueError('Existing checkpoint dataset_info.json does not match the renamed training schema')
     manifest = {'condition': args.condition, 'seed': args.seed, 'dataset_repo_id': args.repo_id,
                 'dataset_root': str(args.dataset_root.resolve()), 'base_model': str(args.base_model.resolve()),
-                'output_dir': str(args.output.resolve()), 'steps': 10000, 'batch_size': 32,
+                'output_dir': str(args.output.resolve()), 'checkpoint_path': str(checkpoint.resolve()),
+                'steps': 10000, 'batch_size': 32,
                 'save_freq': 2000, 'rename_map': rename}
     with (args.output / 'study_manifest.json').open('x', encoding='utf-8') as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)
