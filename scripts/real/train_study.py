@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import hashlib
 import os
 from pathlib import Path
 import sys
@@ -107,9 +108,11 @@ def main(argv=None):
             json.dump(snapshot, fh, ensure_ascii=False, indent=2)
     elif json.loads(schema_path.read_text(encoding='utf-8')).get('features') != features:
         raise ValueError('Existing checkpoint dataset_info.json does not match the renamed training schema')
+    with (checkpoint / 'model.safetensors').open('rb') as fh:
+        model_sha256 = hashlib.file_digest(fh, 'sha256').hexdigest()
     manifest = {'condition': args.condition, 'seed': args.seed, 'dataset_repo_id': args.repo_id,
                 'dataset_root': str(args.dataset_root.resolve()), 'base_model': str(args.base_model.resolve()),
-                'output_dir': str(args.output.resolve()), 'checkpoint_path': str(checkpoint.resolve()),
+                'output_dir': str(args.output.resolve()), 'checkpoint_path': str(checkpoint.resolve()), 'model_sha256': model_sha256,
                 'steps': 10000, 'batch_size': 32,
                 'save_freq': 2000, 'rename_map': rename}
     with (args.output / 'study_manifest.json').open('x', encoding='utf-8') as fh:
