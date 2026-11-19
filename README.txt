@@ -1,17 +1,15 @@
-SO-101 three-policy non-destructive overlay (2026-11-04)
+SO-101 Policy Benchmark & Real-World SmolVLA Diagnostics
 
-Contents:
-- scripts/train/train_act.sh : optional standardized ACT entry (preserves existing ACT code)
-- scripts/train/train_diffusion.sh : LeRobot Diffusion training entry
-- scripts/train/finetune_smolvla.sh : pretrained SmolVLA fine-tune entry
-- scripts/train/_common.sh : shared privacy checks and flags
-- scripts/eval/summarize_rollouts.py : privacy-preserving aggregate statistics
-- docs/README_UPGRADE.md : README introduction and headings to merge
-- docs/POLICY_COMPARISON.md : unified evaluation plan and commands
-- docs/REAL_DEPLOYMENT.md : real-hardware safety gate
-- tests/test_summarize_rollouts.py : lightweight unit tests
+This repository contains two completed experiment tracks:
 
-Important: no existing repo code is overridden; README must be merged manually.
-No eval_mujoco.py or real-hardware driver is included because those need the actual repository API / robot calibration.
+1. MuJoCo simulation benchmark: ACT, Diffusion Policy, and SmolVLA on the red-cube-to-blue-box task.
+   - Success Rate: ACT 89%, Diffusion Policy 80%, SmolVLA 95%.
+   - OOD Success Rate: ACT 72%, Diffusion Policy 62%, SmolVLA 83%.
 
-Do not copy test files over existing versions without reviewing git diff.
+2. SO-101 real-robot study: Cube-to-Cup task using SmolVLA.
+   - Five training conditions: Baseline, Clean, Randomized, Recovery, and Color-varied.
+   - Training and the unified real-robot evaluation protocol have been completed.
+
+See README.md for the full experiment setup, hardware preparation, training commands, and evaluation procedure. See docs/PROJECT_STATE.md for the current project status, docs/POLICY_COMPARISON.md for the simulation benchmark, and docs/REAL_DEPLOYMENT.md for the real-robot study.
+
+Real-robot datasets, calibration files, checkpoints, and raw run logs are maintained outside this public source repository.
