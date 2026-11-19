@@ -10,7 +10,7 @@
 项目包含两个实验场景：
 
 - **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成红色方块抓取放置任务。
-- **Real Robot Manipulation**：在真实 SO-101 机械臂上使用 SmolVLA，完成单个方块抓取并放入杯子的任务，分析位置偏移、策略不启动与掉落后恢复。
+- **Real Robot Manipulation**：围绕真实 SO-101 的 Cube → Cup 任务，研究不同示教数据采集策略对 SmolVLA 泛化和失败行为的影响（实验代码已配置，当前新任务结果待实测）。
 
 <a id="highlights"></a>
 
@@ -113,10 +113,10 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 ## 1. 项目概览与系统架构
 
-本项目围绕 **SO-101 机械臂** 的抓取放置（Pick-and-Place）操作，独立搭建并完成了**仿真基准对比**与**真机闭环部署**两套完整实验流程。
+本项目围绕 **SO-101 机械臂** 的抓取放置（Pick-and-Place）操作，包含**仿真基准对比**与**真机 SmolVLA 数据采集策略对照研究**两条实验路线；当前新真机研究协议已经补充，尚未上传其独立实测结果。
 
 - **MuJoCo 仿真实验**：基于开源 LeRobot 数据集，在统一的 SO-101 物理仿真环境中独立完成了 **ACT**、**Diffusion Policy** 与 **SmolVLA** 三种模仿学习策略的训练、超参对齐与分布内/分布外（ID / OOD）闭环评测。
-- **SO-101 真机实验**：从硬件标定与双目相机配置出发，通过**人工遥操作（Teleoperation）**亲自采集多条件专家示范数据，独立完成 **SmolVLA** 的微调训练、安全实机部署及针对典型失效模式（位置偏移抓空、策略未启动、搬运掉落恢复）的定量诊断评测。
+- **SO-101 真机实验**：以 **SmolVLA** 为固定模型，规划 Clean、Randomized、Recovery、Color-varied 四种示教策略的对照实验，提供遥操作采集、微调、人工监督安全评测和离线汇总入口；真实训练/评测成绩待验证。
 
 ### 1.1 仿真与真机实验对比
 
@@ -124,10 +124,10 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 | :--- | :--- | :--- |
 | **机器人平台** | SO-101（5 旋转关节 + 1 夹爪，MJCF 物理模型） | SO-101 实体机械臂 + 夹爪 + 双路 640×480@30fps 相机 |
 | **任务目标** | 抓取**红色方块**放入**蓝色收纳盒**（含多色干扰方块） | 抓取桌面**方块**放入**杯子**（`Cube → Cup`） |
-| **数据来源** | **直接采用开源 LeRobotDataset**（经本地格式校验与统计归一化） | **作者通过人工遥操作亲自采集**多条件专家示范数据 |
+| **数据来源** | **直接采用开源 LeRobotDataset**（经本地格式校验与统计归一化） | 计划通过人工遥操作采集、按条件隔离的专家示范 |
 | **对比策略** | **ACT** vs. **Diffusion Policy** vs. **SmolVLA** | **SmolVLA**（相同模型架构在不同示教策略下的行为诊断） |
 | **语言指令** | 固定仿真任务描述 | `Pick up the cube and place it in the cup.` |
-| **核心研究问题** | 三类主流模仿学习架构在 ID 与 OOD 位置泛化下的性能边界 | 位置偏移接近能力（Reach）、策略启动稳定性（No Motion）与掉落重抓恢复（Recovery） |
+| **核心研究问题** | 三类主流模仿学习架构在 ID 与 OOD 位置泛化下的性能边界 | 不同示教数据策略对成功率、位置泛化、动作启动和掉落恢复的影响 |
 
 ### 1.2 系统流水线
 
@@ -145,12 +145,16 @@ ID / OOD 位置泛化与失败类型量化分析
 **真机实验流水线（自主遥操作驱动）：**
 
 ```text
-人工遥操作采集 (Clean / Position-Randomized / Recovery) ──▶ 自主构建真机 LeRobotDataset
-                                                                       │
-SO-101 真机控制器 (安全限位校验) ◀── SmolVLA 闭环微调与部署 ◀───────────┘
+4 组专家示教 (Clean / Randomized / Recovery / Color) × 每组 50 条
         │
         ▼
-四类专项诊断评测 (Baseline / Reach Shift / No Motion / Drop Recovery)
+相同 SmolVLA 基础模型 × 相同训练预算 × 2 个训练种子
+        │
+        ▼
+5 类真机测试场景 × 每格 15 条计分回合（另有 1 条预热）
+        │
+        ▼
+Task Success + Reach / No Motion / Grasp / Drop / Recovery 诊断统计
 ```
 
 ---
@@ -346,62 +350,119 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 <a id="real-env-data"></a>
 
-## 5. 真机平台与遥操作数据采集
+## 5. 真机平台与示教数据策略研究
 
-### 5.1 硬件平台与任务设定
+> **状态与参考**：本节将 Cube → Cup 真机实验重新组织为**待运行的、可复现的研究方案与离线/真机运行代码**。仓库当前未提供这套新任务的实机训练数据、Checkpoint、评测日志或本项目成功率；上方真机视频来自 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，不是本项目实测。实验设计借鉴该项目的 [PROTOCOL.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/PROTOCOL.md) 和 [SETUP.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/SETUP.md)，不复制其结果。此方案属于**不同示教数据分布下的离线模仿学习对照实验**，不是 DAgger。
 
-真机实验在真实 **SO-101 机械臂** 上独立完成，任务为抓取桌面方块并放入固定位置的杯子（`Cube → Cup`）：
+### 5.1 统一任务与控制变量
 
-- **传感与执行配置**：SO-101 机械臂及夹爪 + 双路 RGB 相机（俯视/前视全局相机 + 腕部局部相机，分辨率 `640×480 @ 30 FPS`）。
-- **统一自然语言指令**：所有真机示教与推理均使用固定指令：
-  ```text
-  Pick up the cube and place it in the cup.
-  ```
-- **物理安全保障**：配置固定机械臂复位初始位姿、工作空间软限位保护及物理急停开关。
+- **真机任务**：SO-101 抓取桌面方块并放入固定杯子；统一指令 <code>Pick up the cube and place it in the cup.</code>。
+- **固定条件**：同一机器人、相机与安装角度、固定复位位姿、杯子位置、训练初始权重、训练步数及评分标准。
+- **双路相机**：前/全局与腕部相机（目标配置 640×480、30 FPS）。必须核对实际设备名称与训练权重的 <code>rename_map</code>，不能直接套用参考仓库的 macOS 相机索引。
+- **空间标记**：在本机安全工作区标记 T1–T10（训练位置）及 E1–E5（从未示教的评测位置）；T6 为固定基准位置。编号只代表实验位置，**参考项目的桌面坐标不可直接用于另一台机器人**。
+- **安全**：检查标定、关节限位、停止入口、实体急停、障碍物和夹爪极性；现有 <code>configs/real/so101.yaml</code> 默认 <code>robot.hardware_confirmed: false</code>，不会自动启用真机。
 
-### 5.2 自主遥操作数据采集
+### 5.2 四组数据采集条件（训练集）
 
-区别于仿真使用的开源数据，真机实验的全部专家示范均由作者通过**主从遥操作（Teleoperation）**亲自采集，并按实验条件严格隔离存储为独立 LeRobotDataset（绝不混用不同条件的训练数据）：
+采用**相同 SmolVLA 基础模型、每组 50 条专家示教**，只改变专家示教数据的采集方式：
 
-| 数据集 Split | 遥操作采集策略与场景设计 | 对应研究目的 |
-| :--- | :--- | :--- |
-| `baseline` | 方块置于固定标准起点，完整演示接近、抓取、抬起、入杯与释放 | 建立标准抓取放置性能基准 |
-| `position_shift` | 评测时将方块向机械臂方向**偏移 2 英寸（5.08 cm）**（训练数据仅含固定起点） | 检验未见位置偏移下是否仍能调整接近轨迹，还是在原位抓空 |
-| `no_motion` | 在较大范围内随机化方块起点进行遥操作示教，测试时从相同初始位姿启动 | 诊断示教位置多样性增加后，策略是否出现初态停滞或原地抖动 |
-| `recovery` | 遥操作刻意演示「搬运中途主动释放/掉落 → 重新定位接近 → 再次抓取 → 最终入杯」的完整纠错序列 | 检验策略在意外掉落后的闭环重抓与任务恢复能力 |
-| `color_variation` *(可选)* | 更换未见颜色的方块，保持文本指令与杯子位置不变 | 独立检验外观颜色泛化能力 |
+| 训练组 | 50 条示教的组成 | 研究的问题 |
+|---|---|---|
+| **Clean** | 红色方块固定 T6；50 条正常成功示教 | 基础性能与固定位置泛化边界 |
+| **Randomized** | 红色方块在 T1–T10 各采集 5 条 | 位置覆盖范围与每个位置示教密度的权衡 |
+| **Recovery** | 红色方块固定 T6；其中 20 条包含主动释放、重抓并完成入杯 | 仅增加恢复示教，能否获得可靠恢复能力 |
+| **Color-varied** | 固定 T6；红、橙、黄、蓝、紫各 10 条；绿色留作评测 | 示教颜色多样性是否改善未见颜色表现 |
+
+**重要区分**：<code>clean / randomized / recovery / color</code> 是**训练数据条件**；<code>no_motion / reach / recovery</code> 是评测时观察到的**失败行为**，不是独立的数据集 Split。所有训练数据都应隔离存储。Recovery 的主动释放也不等于真实意外掉落，必须单独解释。
+
+采集前先查看每条示教对应的位置、颜色及是否需要主动释放的计划：
+
+~~~bash
+python scripts/real/study_protocol.py --phase collect --condition randomized
+python scripts/real/study_protocol.py --phase collect --condition recovery
+~~~
+
+参考项目使用 LeRobot 主从遥操作接口。本仓库提供**默认 dry-run** 的配套入口，先检查打印出的命令和 50 条计划，再按实际端口、相机及标定执行：
+
+~~~bash
+python scripts/real/record_study.py \
+  --condition clean --repo-id local/real_cube_clean \
+  --dataset-root data/real_cube_clean \
+  --follower-port /dev/ttyACM0 --leader-port /dev/ttyACM1 \
+  --front-idx 0 --wrist-idx 1 \
+  --plan-output outputs/real/plans/clean.json
+# 硬件、工作台、数据路径检查无误后，才在命令末尾显式加 --execute
+~~~
+
+工具不会自动移动物体或切换灯光；每条示教开始前操作者必须按计划人工布置，并核对录制结果。<code>lerobot-record</code> 的具体 CLI 及 LeRobot 版本须在真机环境验证。
 
 ---
 
 <a id="real-train-eval"></a>
 
-## 6. 真机策略训练、部署与诊断评测
+## 6. 真机 SmolVLA 训练、评测与数据质量诊断
 
-### 6.1 SmolVLA 微调与真机安全部署
+### 6.1 固定训练预算与模型对照
 
-真机阶段固定使用 **SmolVLA** 架构，通过对比不同示教条件下微调得到的 Checkpoint，分析数据分布对实机操作鲁棒性的影响。
+每组数据训练两个种子（1000、2000），共 4 × 2 = **8 个独立训练运行**。使用相同基础模型和统一预算（10,000 steps、batch size 32、每 2,000 steps 保存 checkpoint），仅改变示教数据集与种子；请评估最终步数的 checkpoint，不按验证集结果为某一组挑选最优版本。
 
-相关真机代码模块位于：
-- `configs/real/so101.yaml`：真机相机设备号、关节零点标定、控制频率与安全工作空间配置。
-- `scripts/real/task_conditioning.py`：统一封装语言指令与多模态观测输入预处理。
-- `scripts/real/deploy_policy.py`：加载本地 SmolVLA Checkpoint 与真机处理器执行闭环推理。
-- `scripts/real/evaluate_policy.py`：支持按条件（`--condition`）开展真机评测并结构化记录精细化过程标签。
+~~~bash
+python scripts/real/train_study.py \
+  --condition clean --seed 1000 \
+  --dataset-root data/real_cube_clean --repo-id local/real_cube_clean \
+  --base-model /path/to/local/smolvla_base \
+  --output outputs/train/real_clean_seed1000
+# 计划核对并确保本地有 50 条示教后，追加 --execute 才调用 lerobot-train
+~~~
 
-> **动作空间安全隔离**：真机底层下发的是校准后的 **5 个关节角度（Degrees）+ 夹爪开合百分比**，与 MuJoCo 仿真的关节弧度制（Radians）严格隔离；部署前必须核对夹爪开合极性及双目相机键名映射。
+训练入口检查 LeRobotDataset 中的回合数及六维真机关节特征；运行后在对应训练输出目录生成 <code>study_manifest.json</code>，用于关联训练条件、种子及评测日志。全部数据与权重保持本地，不默认上传 Hub。现有 <code>scripts/train/finetune_smolvla.sh</code> 仍用于仿真/通用 SmolVLA 训练；研究协议以新的 <code>train_study.py</code> 为准。
 
-### 6.2 细粒度行为诊断与评测指标
+### 6.2 五类统一评测场景
 
-为避免单一“总成功率”掩盖具体的失效机理，真机评测在每回合结束后记录细粒度过程状态字段（`started`、`reached`、`grasped`、`placed`、`released`、`dropped`、`regrasp_attempted`、`regrasped`、`failure_mode`），并据此统计以下核心指标：
+四组模型各自在同样的五类场景下测试，**每个场景 16 个回合：第 0 回合预热不计分，后续 15 回合正式计分**。
 
-| 指标 | 计算口径与物理含义 |
-| :--- | :--- |
-| **Task Success Rate** | 满足 $\text{Grasped} \land \text{PlacedInsideCup} \land \text{ReleasedWithinTimeLimit}$ 的最终成功比例（含掉落后重抓成功） |
-| **Valid Initiation Rate** | 从初始位姿产生有效接近轨迹的比例（用于量化 `No Motion` 失效） |
-| **Reach / Grasp Success** | 末端准确到达方块位置的比例 vs. 夹爪真正抓起方块的比例（区分定位偏差与抓取闭合失误） |
-| **Drop Rate** | 搬运过程中发生方块滑落或提前释放的比例 |
-| **Re-grasp Rate** | 发生掉落的回合中，策略主动尝试并成功重新抓起方块的比例 |
-| **Recovery Success** | 发生掉落后最终仍成功将方块放入杯子的比例 |
-| **Completion Time** | 成功回合从启动到释放完成的平均耗时 |
+| 评测场景 | 物理环境设置 | 主要测量 |
+|---|---|---|
+| <code>in_distribution</code> | 红色方块 T6、标准光照 | 基础任务成功率 |
+| <code>new_positions</code> | 红色方块 E1–E5，每个位置各 3 次 | 位置泛化与 Reach Failure |
+| <code>reduced_lighting</code> | 红色方块 T6、降低照明 | 光照鲁棒性 |
+| <code>different_object</code> | 未参与训练的绿色方块 T6 | 颜色/外观泛化；No Motion 只是可能的失败现象 |
+| <code>distractors</code> | 红色方块 T6、增加非目标物体 | 抗干扰能力 |
+
+评测同样需要操作者逐回合复位场景、确认目标及安全状态，并在结束后人工填写 <code>success</code> 和可观察到的阶段标签（<code>started</code>、<code>reached</code>、<code>grasped</code>、<code>dropped</code>、<code>regrasped</code> 等）。**不能以动作已下发或视频看起来正常代替成功判定。**
+
+~~~bash
+python scripts/real/study_protocol.py --phase evaluate --cell new_positions
+python scripts/real/evaluate_study.py \
+  --condition clean --seed 1000 --cell new_positions \
+  --checkpoint outputs/train/real_clean_seed1000/checkpoints/010000/pretrained_model \
+  --training-manifest outputs/train/real_clean_seed1000/study_manifest.json \
+  --output outputs/real/eval_clean_s1000_new_positions.jsonl
+# 核对标定、checkpoint 与 manifest 后，追加 --execute 才连接机器人并开始评测
+~~~
+
+原有的 <code>scripts/real/deploy_policy.py</code> 和 <code>scripts/real/evaluate_policy.py</code> 仍可用于单次安全部署和探索性排查；**正式四条件对照**使用 <code>evaluate_study.py</code>，不能将探索性与注册评测混在同一统计分母里。
+
+### 6.3 结果统计：不仅比较 Loss，还要比较执行行为
+
+~~~bash
+python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
+  --csv outputs/real/study_summary.csv
+# 所有 4×2×5 条件/种子/场景均完整且每格有 15 条正式回合时，追加 --strict
+~~~
+
+汇总按**训练组 × 训练种子 × 评测场景**输出成功次数、成功率和 Wilson 95% 区间，并为每个训练种子追加一行 <code>all_cells</code> 整体成功率；不把两个训练种子的结果直接混成单个结论。预热和中断回合不计入分母。
+
+行为诊断同时包含 **No-Motion Rate、Reach Rate、Grasp Rate、Drop Rate、Re-grasp per Drop、Recovery per Drop**。若尚未完整标注某阶段，指标显示为空，不自动假设失败或成功。当前运行器保存每回合推理延迟、控制步数、限幅次数及操作者标签；**逐步关节轨迹、动作方向角和相机视频并未自动保存**，不能据此声称已经复现参考项目的运动轨迹图。
+
+| 真机训练组 | 标准场景 | 新位置 | 低光照 | 绿色方块 | 干扰物 | Overall (75/seed) |
+|---|---|---|---|---|---|---|
+| Clean | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 |
+| Randomized | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 |
+| Recovery | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 |
+| Color-varied | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 | 待实测 |
+
+**仿真与真机的比较边界**：仿真 SmolVLA 完成“红方块→蓝盒子”，真机是“方块→杯子”，任务、接触动力学及评分环境不同；可以在项目内并列展示，但不可直接把两者的百分比差异解释为严格的 Sim-to-Real Gap。参考项目的重要结论是“示教多样性不一定提高整体成功率”，本项目会以独立数据验证，而不是预设 Randomized 或 Recovery 优于 Clean。
 
 ---
 
