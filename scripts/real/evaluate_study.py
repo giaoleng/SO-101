@@ -51,6 +51,24 @@ def _prepare_runner_config(args):
     return cfg
 
 
+def map_cameras_to_policy_features(cameras, rename):
+    """Map local front/wrist camera handles to the feature keys used at training."""
+    uses_overhead_dataset_key = 'observation.images.overhead' in rename
+    aliases = {'front': 'overhead'} if uses_overhead_dataset_key else {}
+    mapped = {}
+    for camera_name, settings in cameras.items():
+        source_name = aliases.get(camera_name, camera_name)
+        raw_feature = 'observation.images.' + source_name
+        new_feature = rename.get(raw_feature, raw_feature)
+        if not isinstance(new_feature, str) or not new_feature.startswith('observation.images.'):
+            raise ValueError(f'Invalid renamed camera feature: {new_feature}')
+        target_name = new_feature.removeprefix('observation.images.')
+        if not target_name or target_name in mapped:
+            raise ValueError('Camera rename_map would create an empty or duplicate camera key')
+        mapped[target_name] = settings
+    return mapped
+
+
 def main(argv=None):
     p = build_parser()
     args = p.parse_args(argv)
@@ -72,17 +90,10 @@ def main(argv=None):
     rename = manifest.get('rename_map', {})
     if not isinstance(rename, dict):
         p.error('Malformed training rename_map')
-    cameras = {}
-    for old_name, settings in cfg['robot']['cameras'].items():
-        raw_feature = 'observation.images.' + old_name
-        new_feature = rename.get(raw_feature, raw_feature)
-        if not isinstance(new_feature, str) or not new_feature.startswith('observation.images.'):
-            p.error(f'Invalid renamed feature: {new_feature}')
-        new_name = new_feature.removeprefix('observation.images.')
-        if not new_name or new_name in cameras:
-            p.error('Camera rename_map would duplicate a camera key')
-        cameras[new_name] = settings
-    cfg['robot']['cameras'] = cameras
+    try:
+        cfg['robot']['cameras'] = map_cameras_to_policy_features(cfg['robot']['cameras'], rename)
+    except ValueError as exc:
+        p.error(str(exc))
     cfg['policy']['dataset_root'] = str(Path(manifest['dataset_root']))
     weights = Path(cfg['policy']['checkpoint']) / 'model.safetensors'
     with weights.open('rb') as fh:

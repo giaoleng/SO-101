@@ -7,6 +7,7 @@ from io import StringIO
 from unittest.mock import patch
 import unittest
 
+from scripts.real.evaluate_study import map_cameras_to_policy_features
 from scripts.real.study_protocol import (collection_plan, evaluation_plan, TRAIN_CONDITIONS,
                                          EVAL_CELLS, TRAINING_SEEDS)
 from scripts.real.train_study import training_command, check_dataset
@@ -85,6 +86,26 @@ class RealStudyProtocol(unittest.TestCase):
             summarize(cases + [cases[0]])
         with self.assertRaises(ValueError):
             summarize(cases, strict=True)
+
+    def test_reference_dataset_camera_keys_map_to_real_robot_camera_handles(self):
+        cameras = {'front': {'index_or_path': 0}, 'wrist': {'index_or_path': 1}}
+        reference_map = {
+            'observation.images.overhead': 'observation.images.camera1',
+            'observation.images.wrist': 'observation.images.camera2',
+        }
+        mapped = map_cameras_to_policy_features(cameras, reference_map)
+        self.assertEqual(set(mapped), {'camera1', 'camera2'})
+        self.assertEqual(mapped['camera1']['index_or_path'], 0)
+        self.assertEqual(mapped['camera2']['index_or_path'], 1)
+
+    def test_local_front_camera_mapping_remains_supported(self):
+        cameras = {'front': {'index_or_path': 0}, 'wrist': {'index_or_path': 1}}
+        local_map = {
+            'observation.images.front': 'observation.images.camera1',
+            'observation.images.wrist': 'observation.images.camera2',
+        }
+        mapped = map_cameras_to_policy_features(cameras, local_map)
+        self.assertEqual(set(mapped), {'camera1', 'camera2'})
 
     def test_warmup_and_incomplete_are_not_scored(self):
         cases = [{'train_condition': 'clean', 'seed': 1000, 'eval_cell': 'in_distribution',
