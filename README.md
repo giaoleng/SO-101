@@ -431,13 +431,13 @@ calibration/
 
 ```bash
 # 先查看下载计划
-python scripts/real/download_reference_datasets.py --dry-run
+python scripts/real/download_study_datasets.py --dry-run
 
 # 下载全部四组数据
-python scripts/real/download_reference_datasets.py
+python scripts/real/download_study_datasets.py
 
 # 只下载指定条件
-python scripts/real/download_reference_datasets.py --condition clean recovery
+python scripts/real/download_study_datasets.py --condition clean recovery
 ```
 
 默认保存至 `data/real_demonstrations/{clean,randomized,recovery,color}/`，并生成 `download_manifest.json`。数据文件较大，保留在本地忽略目录，不提交到 GitHub。安装下载依赖：
