@@ -543,7 +543,22 @@ python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
 
 行为诊断同时包含 **No-Motion Rate、Reach Rate、Grasp Rate、Drop Rate、Re-grasp per Drop、Recovery per Drop**。若尚未完整标注某阶段，指标显示为空，不自动假设失败或成功。当前运行器保存每回合推理延迟、控制步数、限幅次数及操作者标签；**逐步关节轨迹、动作方向角和相机视频并未自动保存**，因此当前统计主要用于回合级和阶段级失败分析。
 
-### 6.4 四种固定策略的结果比较
+### 6.4 仿真与真机 SmolVLA 成功率对比
+
+本项目最终汇总仿真基线、原始真机基线和使用固定策略示教数据训练的改进真机模型。当前只有仿真 SmolVLA 已有结果，真机两项均保留为待实测。
+
+| 模型阶段 | 环境与任务 | 标准场景 / ID 成功率 | OOD / 泛化成功率 |
+|---|---|---:|---:|
+| **Simulation SmolVLA** | MuJoCo：红色方块 → 蓝色盒子 | **95%** | **83%** |
+| **Real-world SmolVLA（改进前）** | SO-101：方块 → 杯子 | 待实测 | 待实测 |
+| **Improved Real-world SmolVLA（改进后）** | SO-101：方块 → 杯子 | 待实测 | 待实测 |
+
+- **Simulation SmolVLA** 的 95% / 83% 沿用本 README「仿真实验结果」中的 Success Rate / OOD Success Rate。
+- **改进前真机模型**作为真机基线，使用原始真机示教数据训练。
+- **改进后真机模型**使用重新组织的固定策略示教数据训练，包含 Clean、Randomized、Recovery、Color-varied 四组；四组分别训练和评测，不默认将四组数据合并成一个训练集。结果需按实际评测填写。
+- 真机 **ID** 对应标准 `in_distribution` 场景；**OOD** 对应 `new_positions`、`reduced_lighting`、`different_object` 和 `distractors` 场景。预热回合不计入成功率。
+
+> **比较边界**：仿真任务是「红色方块 → 蓝色盒子」，真机任务是「方块 → 杯子」，因此仿真与真机两行用于展示不同阶段的性能，不构成严格同任务对照。判断真机数据改进是否有效，应重点比较同一 Cube → Cup 任务下的「改进前」与「改进后」，并保持测试场景、成功判定标准和评测回合数一致。
 
 完成四组模型的训练和统一真机评测后，按相同测试场景比较：
 
