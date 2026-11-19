@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Offline aggregate of real SmolVLA study JSONL; never invent absent rollouts.
 
-Groups are condition x training seed x evaluation cell. Warmup and incomplete
+Groups are model condition x training seed x evaluation cell. Warmup and incomplete
 runs are excluded from all denominators. Output can be saved to CSV locally.
 """
 from __future__ import annotations
@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+
 def wilson_interval(successes: int, total: int, z: float = 1.96):
     if total <= 0:
         raise ValueError('total must be positive')
@@ -27,7 +28,11 @@ def wilson_interval(successes: int, total: int, z: float = 1.96):
     half = z * math.sqrt(p*(1-p)/total + z*z/(4*total*total)) / d
     return max(0., center-half), min(1., center+half)
 
-from scripts.real.study_protocol import EVAL_CELLS, TRAIN_CONDITIONS, TRAINING_SEEDS, SCORED_EPISODES
+
+from scripts.real.study_protocol import (
+    EVAL_CELLS, MODEL_CONDITIONS, TRAINING_SEEDS, SCORED_EPISODES,
+    TOTAL_SCORED_EPISODES,
+)
 
 
 def read_logs(paths: list[Path]) -> list[dict]:
@@ -47,7 +52,7 @@ def read_logs(paths: list[Path]) -> list[dict]:
                     raise ValueError(f'{path}:{n}: completed must be boolean')
                 if row.get('is_warmup') is True or not row['completed']:
                     continue
-                if (row.get('train_condition') not in TRAIN_CONDITIONS or
+                if (row.get('train_condition') not in MODEL_CONDITIONS or
                         row.get('eval_cell') not in EVAL_CELLS or
                         type(row.get('seed')) is not int or row['seed'] not in TRAINING_SEEDS or
                         type(row.get('success')) is not bool):
@@ -74,16 +79,26 @@ def summarize(rows: list[dict], *, strict=False) -> list[dict]:
         token = (*key, row.get('episode'))
         if type(row.get('episode')) is not int or token in seen:
             raise ValueError(f'Duplicate/missing scored episode: {token}')
+        expected = SCORED_EPISODES[row['eval_cell']]
+        if not 1 <= row['episode'] <= expected:
+            raise ValueError(f'Scored episode index out of range for {key}: {row["episode"]}')
         seen.add(token)
         groups[key].append(row)
     if strict:
-        expected = {(c, s, e) for c in TRAIN_CONDITIONS for s in TRAINING_SEEDS for e in EVAL_CELLS}
-        missing = expected - groups.keys()
+        expected_groups = {
+            (condition, seed, cell)
+            for condition in MODEL_CONDITIONS
+            for seed in TRAINING_SEEDS
+            for cell in EVAL_CELLS
+        }
+        missing = expected_groups - groups.keys()
         if missing:
-            raise ValueError(f'Missing {len(missing)} condition/seed/cell groups')
+            raise ValueError(f'Missing {len(missing)} model/seed/cell groups')
 
     def row_for(condition, seed, cell, cases):
         n = len(cases)
+        if n <= 0:
+            raise ValueError(f'No scored episodes for {condition}/seed{seed}/{cell}')
         wins = sum(r['success'] for r in cases)
         lo, hi = wilson_interval(wins, n)
         return {
@@ -104,13 +119,16 @@ def summarize(rows: list[dict], *, strict=False) -> list[dict]:
     by_policy = defaultdict(list)
     for (condition, seed, cell), cases in sorted(groups.items()):
         n = len(cases)
-        if n > SCORED_EPISODES or (strict and n != SCORED_EPISODES):
-            raise ValueError(f'Invalid scored episode count for {condition}/{seed}/{cell}: {n}')
+        expected = SCORED_EPISODES[cell]
+        if n > expected or (strict and n != expected):
+            raise ValueError(f'Invalid scored episode count for {condition}/{seed}/{cell}: {n}, expected {expected}')
+        if strict and {r['episode'] for r in cases} != set(range(1, expected + 1)):
+            raise ValueError(f'Incomplete scored episode indices for {condition}/{seed}/{cell}')
         output.append(row_for(condition, seed, cell, cases))
         by_policy[(condition, seed)].extend(cases)
     for (condition, seed), cases in sorted(by_policy.items()):
-        if strict and len(cases) != SCORED_EPISODES * len(EVAL_CELLS):
-            raise ValueError(f'Invalid total for {condition}/seed{seed}: {len(cases)}')
+        if strict and len(cases) != TOTAL_SCORED_EPISODES:
+            raise ValueError(f'Invalid total for {condition}/seed{seed}: {len(cases)}, expected {TOTAL_SCORED_EPISODES}')
         output.append(row_for(condition, seed, 'all_cells', cases))
     return output
 
@@ -119,7 +137,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('inputs', type=Path, nargs='+')
     parser.add_argument('--csv', type=Path)
-    parser.add_argument('--strict', action='store_true', help='Require all 4 x 2 x 5 groups and 15 scored episodes each')
+    parser.add_argument('--strict', action='store_true',
+                        help='Require all 5 model conditions x 1 seed x 5 cells, with 40 ID and 15 per OOD cell')
     args = parser.parse_args(argv)
     rows = read_logs(args.inputs)
     if not rows:

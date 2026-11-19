@@ -18,12 +18,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 import subprocess
 
-from scripts.real.study_protocol import TRAIN_CONDITIONS, TRAINING_SEEDS, DEMOS_PER_CONDITION
+from scripts.real.study_protocol import (
+    BASELINE_CONDITION, MODEL_CONDITIONS, TRAINING_SEEDS, DEMOS_PER_CONDITION,
+)
 
 
 def training_command(*, condition: str, seed: int, repo_id: str, dataset_root: Path,
                      base_model: Path, output: Path, device='cuda', rename_map=None) -> list[str]:
-    if condition not in TRAIN_CONDITIONS or seed not in TRAINING_SEEDS:
+    if condition not in MODEL_CONDITIONS or seed not in TRAINING_SEEDS:
         raise ValueError('condition/seed must be declared in the study protocol')
     if not repo_id or not str(base_model).strip():
         raise ValueError('repo_id and base_model are required')
@@ -40,10 +42,14 @@ def training_command(*, condition: str, seed: int, repo_id: str, dataset_root: P
     return command
 
 
-def check_dataset(root: Path):
+def check_dataset(root: Path, condition: str = 'clean'):
+    if condition not in MODEL_CONDITIONS:
+        raise ValueError(f'Unknown model condition: {condition}')
     info = json.loads((root / 'meta' / 'info.json').read_text(encoding='utf-8'))
     n = info.get('total_episodes')
-    if type(n) is not int or n != DEMOS_PER_CONDITION:
+    if type(n) is not int or n < 1:
+        raise ValueError(f'{root}: expected at least one expert demonstration, got {n}')
+    if condition != BASELINE_CONDITION and n != DEMOS_PER_CONDITION:
         raise ValueError(f'{root}: expected exactly {DEMOS_PER_CONDITION} expert demonstrations, got {n}')
     features = info.get('features', {})
     for key in ('action', 'observation.state'):
@@ -56,14 +62,14 @@ def check_dataset(root: Path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--condition', required=True, choices=TRAIN_CONDITIONS)
+    parser.add_argument('--condition', required=True, choices=MODEL_CONDITIONS)
     parser.add_argument('--seed', required=True, type=int, choices=TRAINING_SEEDS)
     parser.add_argument('--dataset-root', required=True, type=Path)
     parser.add_argument('--repo-id', required=True)
     parser.add_argument('--base-model', required=True, type=Path, help='Local SmolVLA base checkpoint')
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--device', default='cuda')
-    parser.add_argument('--rename-map', default='{"observation.images.front":"observation.images.camera1","observation.images.wrist":"observation.images.camera2"}',
+    parser.add_argument('--rename-map', default='{"observation.images.overhead":"observation.images.camera1","observation.images.wrist":"observation.images.camera2"}',
                         help='JSON mapping of dataset feature names to model keys; empty JSON disables')
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--execute', dest='execute', action='store_true', help='Train the policy (default)')
@@ -84,7 +90,7 @@ def main(argv=None):
         parser.error('Local pretrained checkpoint directory not found')
     if args.output.exists():
         parser.error(f'Output already exists (refuse overwrite): {args.output}')
-    info = check_dataset(args.dataset_root)
+    info = check_dataset(args.dataset_root, condition=args.condition)
     names = set(info['features'])
     if not set(rename).issubset(names):
         parser.error(f'Rename keys absent from dataset metadata: {sorted(set(rename) - names)}')
@@ -116,7 +122,7 @@ def main(argv=None):
     manifest = {'condition': args.condition, 'seed': args.seed, 'dataset_repo_id': args.repo_id,
                 'dataset_root': str(args.dataset_root.resolve()), 'base_model': str(args.base_model.resolve()),
                 'output_dir': str(args.output.resolve()), 'checkpoint_path': str(checkpoint.resolve()), 'model_sha256': model_sha256,
-                'steps': 10000, 'batch_size': 32,
+                'demonstrations': info['total_episodes'], 'steps': 10000, 'batch_size': 32,
                 'save_freq': 2000, 'rename_map': rename}
     with (args.output / 'study_manifest.json').open('x', encoding='utf-8') as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)

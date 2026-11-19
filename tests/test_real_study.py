@@ -8,8 +8,10 @@ from unittest.mock import patch
 import unittest
 
 from scripts.real.evaluate_study import map_cameras_to_policy_features
-from scripts.real.study_protocol import (collection_plan, evaluation_plan, TRAIN_CONDITIONS,
-                                         EVAL_CELLS, TRAINING_SEEDS)
+from scripts.real.study_protocol import (
+    collection_plan, evaluation_plan, TRAIN_CONDITIONS, MODEL_CONDITIONS,
+    EVAL_CELLS, TRAINING_SEEDS, SCORED_EPISODES, TOTAL_SCORED_EPISODES,
+)
 from scripts.real.train_study import training_command, check_dataset
 from scripts.real.record_study import record_command
 from scripts.real.summarize_study import summarize, read_logs
@@ -27,22 +29,27 @@ class RealStudyProtocol(unittest.TestCase):
             self.assertEqual(sum(r['cube_color'] == color for r in collection_plan('color')), 10)
         self.assertNotIn('green', {r['cube_color'] for r in collection_plan('color')})
 
-    def test_evaluation_fifteen_scored_plus_warmup(self):
+    def test_evaluation_budget_is_40_id_plus_15_per_ood_and_warmup(self):
+        self.assertEqual(TRAINING_SEEDS, (1000,))
+        self.assertEqual(SCORED_EPISODES['in_distribution'], 40)
+        self.assertEqual(sum(SCORED_EPISODES.values()), 100)
         for cell in EVAL_CELLS:
             trials = evaluation_plan(cell)
-            self.assertEqual(len(trials), 16)
+            expected = SCORED_EPISODES[cell]
+            self.assertEqual(len(trials), expected + 1)
             self.assertTrue(trials[0]['warmup'])
-            self.assertEqual(sum(not r['warmup'] for r in trials), 15)
+            self.assertEqual(sum(not r['warmup'] for r in trials), expected)
         positions = [r['position_id'] for r in evaluation_plan('new_positions')[1:]]
         self.assertEqual(positions, [f'E{i}' for _ in range(3) for i in range(1, 6)])
         self.assertEqual({r['cube_color'] for r in evaluation_plan('different_object')}, {'green'})
 
     def test_matched_training_budget_and_dataset_contract(self):
-        for seed in TRAINING_SEEDS:
-            cmd = training_command(condition='clean', seed=seed, repo_id='local/clean',
+        self.assertEqual(MODEL_CONDITIONS, ('baseline', *TRAIN_CONDITIONS))
+        for condition in MODEL_CONDITIONS:
+            cmd = training_command(condition=condition, seed=1000, repo_id='local/ds',
                                    dataset_root=Path('/tmp/ds'), base_model=Path('/tmp/base'),
                                    output=Path('/tmp/out'))
-            self.assertIn(f'--seed={seed}', cmd)
+            self.assertIn('--seed=1000', cmd)
             self.assertIn('--steps=10000', cmd)
             self.assertIn('--batch_size=32', cmd)
         with tempfile.TemporaryDirectory() as tmp:
@@ -50,13 +57,18 @@ class RealStudyProtocol(unittest.TestCase):
             meta.mkdir()
             base = {'total_episodes': 50, 'features': {'action': {'shape': [6]},
                     'observation.state': {'shape': [6]},
-                    'observation.images.front': {'shape': [480, 640, 3]}}}
+                    'observation.images.overhead': {'shape': [480, 640, 3]}}}
             (meta / 'info.json').write_text(json.dumps(base))
-            self.assertEqual(check_dataset(Path(tmp))['total_episodes'], 50)
-            base['total_episodes'] = 49
+            self.assertEqual(check_dataset(Path(tmp), condition='clean')['total_episodes'], 50)
+            base['total_episodes'] = 12
+            (meta / 'info.json').write_text(json.dumps(base))
+            self.assertEqual(check_dataset(Path(tmp), condition='baseline')['total_episodes'], 12)
+            with self.assertRaises(ValueError):
+                check_dataset(Path(tmp), condition='clean')
+            base['total_episodes'] = 0
             (meta / 'info.json').write_text(json.dumps(base))
             with self.assertRaises(ValueError):
-                check_dataset(Path(tmp))
+                check_dataset(Path(tmp), condition='baseline')
 
     def test_record_command_does_not_push_to_hub(self):
         cmd = record_command(repo_id='local/study_clean', dataset_root=Path('/tmp/clean'),
@@ -86,6 +98,25 @@ class RealStudyProtocol(unittest.TestCase):
             summarize(cases + [cases[0]])
         with self.assertRaises(ValueError):
             summarize(cases, strict=True)
+
+    def test_strict_summary_accepts_exact_five_model_100_rollout_protocol(self):
+        cases = []
+        for condition in MODEL_CONDITIONS:
+            for cell, count in SCORED_EPISODES.items():
+                for episode in range(1, count + 1):
+                    cases.append({
+                        'train_condition': condition, 'seed': 1000, 'eval_cell': cell,
+                        'episode': episode, 'success': episode % 2 == 0, 'completed': True,
+                    })
+        result = summarize(cases, strict=True)
+        self.assertEqual(len(result), len(MODEL_CONDITIONS) * (len(EVAL_CELLS) + 1))
+        totals = [row for row in result if row['eval_cell'] == 'all_cells']
+        self.assertEqual(len(totals), 5)
+        self.assertTrue(all(row['episodes'] == TOTAL_SCORED_EPISODES == 100 for row in totals))
+        id_rows = [row for row in result if row['eval_cell'] == 'in_distribution']
+        self.assertTrue(all(row['episodes'] == 40 for row in id_rows))
+        ood_rows = [row for row in result if row['eval_cell'] in EVAL_CELLS[1:]]
+        self.assertTrue(all(row['episodes'] == 15 for row in ood_rows))
 
     def test_reference_dataset_camera_keys_map_to_real_robot_camera_handles(self):
         cameras = {'front': {'index_or_path': 0}, 'wrist': {'index_or_path': 1}}

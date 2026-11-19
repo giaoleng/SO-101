@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Score a fixed 16-rollout SO-101 cell using the existing guarded real runner.
+"""Score one registered SO-101 evaluation cell using the guarded real runner.
 
 Each trial requires manual scene setup and operator scoring. Evaluation runs by
 default; use --dry-run to inspect the plan without accessing hardware.
@@ -19,16 +19,18 @@ if str(ROOT) not in sys.path:
 from scripts.real.deploy_policy import metadata
 from scripts.real.evaluate_policy import read_outcome
 from scripts.real.runtime import RealPolicyRunner, local_path
-from scripts.real.study_protocol import (EVAL_CELLS, TRAIN_CONDITIONS, TRAINING_SEEDS,
-                                         evaluation_plan)
+from scripts.real.study_protocol import (
+    EVAL_CELLS, MODEL_CONDITIONS, TRAINING_SEEDS, SCORED_EPISODES,
+    TOTAL_SCORED_EPISODES, WARMUP_EPISODES, evaluation_plan,
+)
 from scripts.eval.act_rollout import JsonlRecorder
 
 
 def build_parser():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--config', default='configs/real/so101.yaml')
-    p.add_argument('--condition', choices=TRAIN_CONDITIONS, required=True,
-                   help='Training data condition, not the evaluation scene')
+    p.add_argument('--condition', choices=MODEL_CONDITIONS, required=True,
+                   help='baseline uses the original real-robot demonstrations; other values are the four fixed strategies')
     p.add_argument('--cell', choices=EVAL_CELLS, required=True)
     p.add_argument('--seed', type=int, choices=TRAINING_SEEDS, required=True,
                    help='Seed of the trained checkpoint (not an inference RNG seed)')
@@ -74,10 +76,13 @@ def main(argv=None):
     args = p.parse_args(argv)
     cfg = _prepare_runner_config(args)
     cells = evaluation_plan(args.cell)
+    expected_scored = SCORED_EPISODES[args.cell]
     summary = {'condition': args.condition, 'eval_cell': args.cell,
                'seed': args.seed, 'checkpoint': cfg['policy']['checkpoint'],
                'training_manifest': str(local_path(args.training_manifest)),
-               'scored_episodes': 15, 'warmup_episodes': 1,
+               'scored_episodes': expected_scored,
+               'total_scored_episodes_per_model': TOTAL_SCORED_EPISODES,
+               'warmup_episodes': WARMUP_EPISODES,
                'output': str(local_path(args.output)), 'will_execute': args.execute}
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     if not args.execute:
@@ -102,11 +107,16 @@ def main(argv=None):
         p.error('Checkpoint weights do not match the training manifest')
     if Path(local_path(args.output)).exists():
         p.error('Output JSONL already exists; refuse to overwrite')
-    recorder = JsonlRecorder(local_path(args.output), {**metadata(cfg), 'training_manifest': str(local_path(args.training_manifest))})
+    recorder = JsonlRecorder(local_path(args.output), {
+        **metadata(cfg), 'training_manifest': str(local_path(args.training_manifest)),
+        'model_condition': args.condition, 'training_seed': args.seed,
+        'checkpoint_sha256': digest,
+    })
     try:
         runner = RealPolicyRunner(cfg)
         for item in cells:
-            label = ('warmup (not scored)' if item['warmup'] else f"scored {item['scored_episode']}/15")
+            label = ('warmup (not scored)' if item['warmup']
+                     else f"scored {item['scored_episode']}/{expected_scored}")
             input(f"[{args.condition}/seed{args.seed} {args.cell}] episode {item['episode']} {label}\n"
                   f"Position={item['position_id']}, color={item['cube_color']}, lighting={item['lighting']}, "
                   f"distractors={item['distractors']}. Confirm physical scene + safe home; Enter to run: ")

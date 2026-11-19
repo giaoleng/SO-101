@@ -11,14 +11,23 @@ import json
 from pathlib import Path
 
 TRAIN_CONDITIONS = ('clean', 'randomized', 'recovery', 'color')
+BASELINE_CONDITION = 'baseline'
+MODEL_CONDITIONS = (BASELINE_CONDITION, *TRAIN_CONDITIONS)
 EVAL_CELLS = ('in_distribution', 'new_positions', 'reduced_lighting', 'different_object', 'distractors')
-TRAINING_SEEDS = (1000, 2000)
+TRAINING_SEEDS = (1000,)
+SCORED_EPISODES = {
+    'in_distribution': 40,
+    'new_positions': 15,
+    'reduced_lighting': 15,
+    'different_object': 15,
+    'distractors': 15,
+}
+TOTAL_SCORED_EPISODES = sum(SCORED_EPISODES.values())
+WARMUP_EPISODES = 1
 POSITIONS = tuple(f'T{i}' for i in range(1, 11))
 HELD_OUT = tuple(f'E{i}' for i in range(1, 6))
 COLORS = ('red', 'orange', 'yellow', 'blue', 'purple')
 DEMOS_PER_CONDITION = 50
-SCORED_EPISODES = 15
-WARMUP_EPISODES = 1
 TASK = 'Pick up the cube and place it in the cup.'
 
 
@@ -42,18 +51,20 @@ def collection_plan(condition: str) -> list[dict]:
 
 
 def evaluation_plan(cell: str) -> list[dict]:
-    """Sixteen trials per cell: one discarded warmup, then fifteen scored rollouts."""
+    """One discarded warmup plus the registered number of scored rollouts for a cell."""
     if cell not in EVAL_CELLS:
         raise ValueError(f'Unknown evaluation cell: {cell}')
+    scored_count = SCORED_EPISODES[cell]
     result = []
-    for index in range(WARMUP_EPISODES + SCORED_EPISODES):
-        scored_index = max(index - WARMUP_EPISODES, 0)
-        position = HELD_OUT[scored_index % len(HELD_OUT)] if cell == 'new_positions' else 'T6'
+    for index in range(WARMUP_EPISODES + scored_count):
+        is_warmup = index < WARMUP_EPISODES
+        scored_index = index - WARMUP_EPISODES
+        position = HELD_OUT[scored_index % len(HELD_OUT)] if cell == 'new_positions' and not is_warmup else 'T6'
         scene = {
             'eval_cell': cell,
             'episode': index,
-            'warmup': index < WARMUP_EPISODES,
-            'scored_episode': None if index < WARMUP_EPISODES else scored_index + 1,
+            'warmup': is_warmup,
+            'scored_episode': None if is_warmup else scored_index + 1,
             'position_id': position,
             'cube_color': 'green' if cell == 'different_object' else 'red',
             'lighting': 'reduced' if cell == 'reduced_lighting' else 'baseline',

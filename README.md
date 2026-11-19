@@ -114,20 +114,23 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 ### 仿真与真机 SmolVLA 成功率对比
 
-> **数据性质说明**：仿真数据为项目已有实验结果；真机改进前、改进后的数字是当前阶段的研究预估值，仅用于展示预期趋势和规划实验目标，不是实测结果。完成真机评测后必须用实际数据替换。
+> **数据性质说明**：仿真数据为项目已有实验结果；真机基线和四组改进模型尚未完成本项目独立真机评测，统一标记为待实测，不预填目标值或预估成功率。
 
-| 模型阶段 | 环境与任务 | 标准场景 / ID 成功率 | OOD / 泛化成功率 |
+| 模型 | 训练数据 | 标准场景 / ID 成功率 | OOD / 泛化成功率 |
 |---|---|---:|---:|
 | **Simulation SmolVLA** | MuJoCo：红色方块 → 蓝色盒子 | **95%（实测）** | **83%（实测）** |
-| **Real-world SmolVLA（改进前）** | SO-101：方块 → 杯子，原始真机示教数据 | **66.7%（预估）** | **43.3%（预估）** |
-| **Improved Real-world SmolVLA（改进后）** | SO-101：方块 → 杯子，固定策略示教数据 | **73.3%（预估）** | **61.7%（预估）** |
+| **Real-world Baseline** | 原始 Cube → Cup 真机示教数据 | 待实测 | 待实测 |
+| **Clean** | 固定位置正常成功示教 | 待实测 | 待实测 |
+| **Randomized** | T1–T10 位置变化示教 | 待实测 | 待实测 |
+| **Recovery** | 包含主动释放、重抓的示教 | 待实测 | 待实测 |
+| **Color-varied** | 红、橙、黄、蓝、紫五色示教 | 待实测 | 待实测 |
 
 - 仿真 SmolVLA 的 95% / 83% 沿用上方仿真实验结果。
-- 改进前真机模型作为 Cube → Cup 真机基线，使用原始真机示教数据训练。
-- 改进后真机模型使用上表四种固定策略中的对应数据训练；四组分别训练、分别评测，不将它们默认合并为一个数据集。表中的改进后数字是预估的目标趋势，不代表四组策略已经取得相同成绩，也不预先指定哪组最好。
-- 按当前评测协议，ID 对应标准 `in_distribution` 场景；OOD 汇总 `new_positions`、`reduced_lighting`、`different_object` 和 `distractors` 场景。每个评测单元包含 15 个计分回合，预热回合不计入成功率。表中真机小数百分比仅为非实测的规划估计，按两个训练种子下 ID 共 30 个计分回合、OOD 共 120 个计分回合的量级换算，不能视为真实回合统计。
+- 真机基线使用原始真机示教数据训练；四组改进模型分别使用 Clean、Randomized、Recovery、Color-varied 数据训练，不将四组数据合并。
+- 五个真机模型均使用同一基础 SmolVLA 权重、Seed 1000 和统一训练预算（10,000 steps、batch size 32）；只改变示教数据条件。
+- 每个模型的 ID 场景计分 40 次；四个 OOD 场景各计分 15 次，总计每个模型 100 次、五个模型共 500 次正式 Rollout。每个模型在五个场景各有 1 次预热，另计 25 次不纳入成功率的预热 Rollout。
 
-> **比较边界**：仿真任务是「红色方块 → 蓝色盒子」，真机任务是「方块 → 杯子」，两者不是同一个任务，因此仿真结果用于提供模型基线背景，不能作为严格的 Sim-to-Real 同任务对照。验证数据改进是否有效，应重点比较同一 Cube → Cup 任务下改进前后的真机成功率，并保持测试场景、成功判定标准和评测回合数一致。
+> **比较边界**：仿真任务是「红色方块 → 蓝色盒子」，真机任务是「方块 → 杯子」，两者不是同一个任务，因此仿真结果用于提供模型基线背景，不能作为严格的 Sim-to-Real 同任务对照。验证数据改进是否有效，应重点比较同一 Cube → Cup 任务下五个真机模型的成功率，并保持测试场景、成功判定标准和评测回合数一致。
 
 
 
@@ -514,9 +517,26 @@ python scripts/real/record_study.py \
 
 ## 6. 真机 SmolVLA 训练与失败模式评测
 
-### 6.1 四种固定策略的 SmolVLA 训练对照
+### 6.1 五个真机 SmolVLA 模型的训练对照
 
-每组数据训练两个种子（1000、2000），共 4 × 2 = **8 个独立训练运行**。使用相同基础模型和统一预算（10,000 steps、batch size 32、每 2,000 steps 保存 checkpoint），仅改变示教数据集与种子；请评估最终步数的 checkpoint，不按验证集结果为某一组挑选最优版本。
+正式比较包含 **1 个原始真机基线 + 4 个固定策略改进模型**，所有模型只使用一个训练种子（Seed 1000），共 **5 个独立训练运行**。五个模型使用相同 SmolVLA 基础权重和训练预算（10,000 steps、batch size 32、每 2,000 steps 保存 checkpoint），只改变训练数据条件。
+
+- **Baseline**：使用原始 Cube → Cup 真机示教数据，不经过四种改进策略的数据组织。
+- **Clean / Randomized / Recovery / Color-varied**：分别使用对应的 50 条固定策略示教数据，四组独立训练、独立评测。
+
+先训练原始真机基线（数据目录由操作者提供）：
+
+~~~bash
+python scripts/real/train_study.py \
+  --condition baseline --seed 1000 \
+  --dataset-root data/real_so101_baseline \
+  --repo-id local/real_so101_baseline \
+  --base-model /path/to/local/smolvla_base \
+  --output outputs/train/real_baseline_seed1000 \
+  --rename-map '{"observation.images.overhead":"observation.images.camera1","observation.images.wrist":"observation.images.camera2"}' --execute
+~~~
+
+再以 Clean 为例训练一组改进模型；其余三组只需替换 condition、dataset-root、repo-id 和 output：
 
 ~~~bash
 python scripts/real/train_study.py \
@@ -528,42 +548,49 @@ python scripts/real/train_study.py \
   --rename-map '{"observation.images.overhead":"observation.images.camera1","observation.images.wrist":"observation.images.camera2"}' --execute
 ~~~
 
-训练入口默认实际运行（可用 `--dry-run` 仅输出命令），并检查 LeRobotDataset 中的回合数及六维真机关节特征；运行后在对应训练输出目录生成 <code>study_manifest.json</code>，用于关联训练条件、种子及评测日志。全部数据与权重保持本地，不默认上传 Hub。现有 <code>scripts/train/finetune_smolvla.sh</code> 仍用于仿真/通用 SmolVLA 训练；研究协议以新的 <code>train_study.py</code> 为准。
+训练入口默认实际运行（可用 `--dry-run` 仅输出命令），并检查数据集回合数及六维真机关节特征：Baseline 数据集至少包含 1 条有效示教；四种固定策略数据集必须各为 50 条。运行后在对应训练输出目录生成 <code>study_manifest.json</code>，记录训练条件、Seed、数据集、权重 SHA-256 和训练预算，供评测入口核验。全部数据与权重保持本地，不默认上传 Hub。
 
 ### 6.2 五类统一评测场景
 
-四组模型各自在同样的五类场景下测试，**每个场景 16 个回合：第 0 回合预热不计分，后续 15 回合正式计分**。
+五个模型（Baseline、Clean、Randomized、Recovery、Color-varied）各自在同样的五类场景下测试。**每个模型共 100 次正式计分：ID 40 次，四个 OOD 场景各 15 次。**每个模型在每个场景另做 1 次预热，不计入成功率。
 
-| 评测场景 | 物理环境设置 | 主要测量 |
-|---|---|---|
-| <code>in_distribution</code> | 红色方块 T6、标准光照 | 基础任务成功率 |
-| <code>new_positions</code> | 红色方块 E1–E5，每个位置各 3 次 | 位置泛化与 Reach Failure |
-| <code>reduced_lighting</code> | 红色方块 T6、降低照明 | 光照鲁棒性 |
-| <code>different_object</code> | 未参与训练的绿色方块 T6 | 颜色/外观泛化；No Motion 只是可能的失败现象 |
-| <code>distractors</code> | 红色方块 T6、增加非目标物体 | 抗干扰能力 |
+| 评测场景 | 正式计分次数 | 预热 | 物理环境设置 | 主要测量 |
+|---|---:|---:|---|---|
+| <code>in_distribution</code>（ID） | **40** | 1 | 红色方块 T6、标准光照 | 基础任务成功率 |
+| <code>new_positions</code>（OOD） | **15** | 1 | 红色方块 E1–E5，每个位置各 3 次 | 位置泛化与 Reach Failure |
+| <code>reduced_lighting</code>（OOD） | **15** | 1 | 红色方块 T6、降低照明 | 光照鲁棒性 |
+| <code>different_object</code>（OOD） | **15** | 1 | 未参与训练的绿色方块 T6 | 颜色/外观泛化；No Motion 只是可能的失败现象 |
+| <code>distractors</code>（OOD） | **15** | 1 | 红色方块 T6、增加非目标物体 | 抗干扰能力 |
+| **每个模型合计** | **100** | **5** | — | — |
+| **五个模型合计** | **500** | **25** | — | — |
+
+因此，正式计分为 **500 次真机 Rollout**；连同不计分预热，最多执行 **525 次**。中断或未完成的回合不会自动计为成功，也不会进入成功率分母；应补足对应场景的正式计分次数后再进行完整汇总。
 
 评测入口默认实际运行（可用 `--dry-run` 仅输出计划）；仍需要操作者逐回合复位场景、确认目标及安全状态，并在结束后人工填写 <code>success</code> 和可观察到的阶段标签（<code>started</code>、<code>reached</code>、<code>grasped</code>、<code>dropped</code>、<code>regrasped</code> 等）。**不能以动作已下发或视频看起来正常代替成功判定。**
 
 ~~~bash
-python scripts/real/study_protocol.py --phase evaluate --cell new_positions
+# 先查看该场景的 40 次计分 + 1 次预热计划
+python scripts/real/study_protocol.py --phase evaluate --cell in_distribution
+
+# 以 Baseline 的 ID 场景为例；其余模型替换 --condition、checkpoint 和 manifest
 python scripts/real/evaluate_study.py \
-  --condition clean --seed 1000 --cell new_positions \
-  --checkpoint outputs/train/real_clean_seed1000/checkpoints/010000/pretrained_model \
-  --training-manifest outputs/train/real_clean_seed1000/study_manifest.json \
-  --output outputs/real/eval_clean_s1000_new_positions.jsonl --execute
+  --condition baseline --seed 1000 --cell in_distribution \
+  --checkpoint outputs/train/real_baseline_seed1000/checkpoints/010000/pretrained_model \
+  --training-manifest outputs/train/real_baseline_seed1000/study_manifest.json \
+  --output outputs/real/eval_baseline_s1000_in_distribution.jsonl --execute
 ~~~
 
-原有的 <code>scripts/real/deploy_policy.py</code> 和 <code>scripts/real/evaluate_policy.py</code> 仍可用于单次安全部署和探索性排查；**正式四条件对照**使用 <code>evaluate_study.py</code>，不能将探索性与注册评测混在同一统计分母里。
+正式评测时，Baseline 与四组改进模型都必须使用各自训练生成的 <code>study_manifest.json</code>；入口会核对 condition、seed、训练预算和 checkpoint SHA-256。原有的 <code>scripts/real/deploy_policy.py</code> 和 <code>scripts/real/evaluate_policy.py</code> 仍可用于单次安全部署和探索性排查；**正式五模型对照**使用 <code>evaluate_study.py</code>，不能将探索性与注册评测混在同一统计分母里。
 
 ### 6.3 失败模式统计：从整体成功率定位薄弱环节
 
 ~~~bash
 python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
   --csv outputs/real/study_summary.csv
-# 所有 4×2×5 条件/种子/场景均完整且每格有 15 条正式回合时，追加 --strict
+# 五个模型、Seed 1000、五个场景全部完成，且 ID 为 40 条、每个 OOD 为 15 条时，追加 --strict
 ~~~
 
-汇总按**训练组 × 训练种子 × 评测场景**输出成功次数、成功率和 Wilson 95% 区间，并为每个训练种子追加一行 <code>all_cells</code> 整体成功率；不把两个训练种子的结果直接混成单个结论。预热和中断回合不计入分母。
+汇总按**模型条件 × 训练种子 × 评测场景**输出成功次数、成功率和 Wilson 95% 区间，并为每个模型追加一行 <code>all_cells</code> 整体成功率（100 次正式计分）。<code>--strict</code> 会校验全部 5 × 1 × 5 个分组、每个场景的准确回合数及计分回合编号；预热和中断回合不计入分母。
 
 行为诊断同时包含 **No-Motion Rate、Reach Rate、Grasp Rate、Drop Rate、Re-grasp per Drop、Recovery per Drop**。若尚未完整标注某阶段，指标显示为空，不自动假设失败或成功。当前运行器保存每回合推理延迟、控制步数、限幅次数及操作者标签；**逐步关节轨迹、动作方向角和相机视频并未自动保存**，因此当前统计主要用于回合级和阶段级失败分析。
 
@@ -571,7 +598,7 @@ python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
 
 仿真、改进前真机和改进后真机的整体成功率对比表已放在本 README 前面的失败模式分析之后，按「失败视频 → 失败模式分析 → 固定策略示教数据 → 成功率对比」的顺序呈现。本节进一步说明真机评测结果的统计方法。
 
-完成四组模型的训练和统一真机评测后，按相同测试场景比较：
+完成 Baseline 与四组固定策略模型的训练和统一真机评测后，按相同测试场景比较：
 
 - **整体任务成功率**：判断不同示教策略对完整 Cube → Cup 任务的影响。
 - **Reach / No Motion / Grasp 失败比例**：分析策略是否能稳定启动动作、接近目标并完成抓取。
