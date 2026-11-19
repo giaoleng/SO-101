@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download the four registered upstream SO-101 demonstration datasets.
+"""Download the four SO-101 demonstration datasets used in the real-robot study.
 
 The binary LeRobot data is kept under data/ (git-ignored), not committed to Git.
 Each download is pinned to the Hugging Face dataset commit resolved at download time
@@ -66,7 +66,7 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=Path("data/reference/so101-vla-data-study"),
+        default=Path("data/real_demonstrations"),
     )
     parser.add_argument(
         "--dry-run",
