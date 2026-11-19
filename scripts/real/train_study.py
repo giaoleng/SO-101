@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate matched-budget SmolVLA finetuning commands; dry-run by default.
+"""Generate and run matched-budget SmolVLA finetuning commands.
 
-This invokes an installed `lerobot-train` only with --execute. No robot is touched.
+Training runs by default; use --dry-run to inspect the command. No robot is touched.
 The LeRobot CLI version and feature names must be verified on the training host.
 """
 from __future__ import annotations
@@ -65,7 +65,10 @@ def main(argv=None):
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--rename-map', default='{"observation.images.front":"observation.images.camera1","observation.images.wrist":"observation.images.camera2"}',
                         help='JSON mapping of dataset feature names to model keys; empty JSON disables')
-    parser.add_argument('--execute', action='store_true')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--execute', dest='execute', action='store_true', help='Train the policy (default)')
+    mode.add_argument('--dry-run', dest='execute', action='store_false', help='Print training command only')
+    parser.set_defaults(execute=True)
     args = parser.parse_args(argv)
     rename = json.loads(args.rename_map)
     if not isinstance(rename, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in rename.items()):
