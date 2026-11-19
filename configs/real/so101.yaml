@@ -22,7 +22,7 @@ robot:
       fps: 30
 policy:
   type: smolvla  # 真机当前实验仅使用 SmolVLA
-  checkpoint: ./checkpoints/real_smolvla/pretrained_model  # 待提供并核对的本地权重；勿直接执行
+  checkpoint: ./checkpoints/real_smolvla/pretrained_model  # 部署前替换为本机已训练并核验的权重路径
   dataset_root: ./data/real_so101
   device: cpu
   # 真机训练和推理必须共用此语义；不自动转换MuJoCo关节弧度。
@@ -36,7 +36,7 @@ conditioning:
     cube: Pick up the cube and place it in the cup.
 control:
   fps: 20
-  duration_s: 45  # 原失败视频研究参考评测窗口；新任务尚未运行验证
+  duration_s: 45  # 单次部署运行时长上限；正式对照的场景与次数由 study_protocol.py 定义
   max_steps: 900
   inference_timeout_s: 1.0
   max_observation_age_s: 1.2
@@ -70,5 +70,5 @@ logging:
 evaluation:
   episodes: 5
   split: baseline
-  condition: baseline  # baseline / position_shift / no_motion / recovery / color_variation
+  condition: baseline  # 单次探索性评测分组；正式五模型对照使用 evaluate_study.py
   output: ./outputs/real/evaluation.jsonl
