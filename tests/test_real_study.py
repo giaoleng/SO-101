@@ -120,8 +120,8 @@ class RealStudyProtocol(unittest.TestCase):
         self.assertTrue(build_parser().parse_args(eval_args).execute)
         self.assertFalse(build_parser().parse_args(eval_args + ['--dry-run']).execute)
 
-        with patch('subprocess.run', side_effect=AssertionError('external process launched')), \\
-             patch('builtins.input', side_effect=AssertionError('prompted for real robot')), \\
+        with patch('subprocess.run', side_effect=AssertionError('external process launched')), \
+             patch('builtins.input', side_effect=AssertionError('prompted for real robot')), \
              redirect_stdout(StringIO()):
             record_main(record_args + ['--dry-run'])
             train_main(train_args + ['--dry-run'])
@@ -129,8 +129,8 @@ class RealStudyProtocol(unittest.TestCase):
 
         # Without --dry-run, the entrypoints enter execution checks;
         # they must still refuse missing resources or request human confirmation.
-        with tempfile.TemporaryDirectory() as tmp, \\
-             patch('builtins.input', side_effect=RuntimeError('operator confirmation reached')), \\
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch('builtins.input', side_effect=RuntimeError('operator confirmation reached')), \
              redirect_stdout(StringIO()):
             args = list(record_args)
             args[args.index('/nonexistent/study_clean')] = str(Path(tmp) / 'new_dataset')
