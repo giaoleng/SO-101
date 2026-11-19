@@ -39,7 +39,7 @@
 | Recovery | 包含主动释放、重新抓取的示教 | 掉落后的恢复能力 |
 | Color-varied | 红、橙、黄、蓝、紫五种颜色示教 | 外观变化下的任务表现 |
 
-数据包含双相机图像、六维 action/state 和任务指令。下载入口为 <code>scripts/real/download_reference_datasets.py</code>，默认将数据保存在本地 <code>data/</code> 忽略目录，并记录数据版本及校验信息。训练时须将数据集相机特征映射到模型使用的 camera1 / camera2 输入。
+数据包含双相机图像、六维 action/state 和任务指令。下载入口为 <code>scripts/real/download_study_datasets.py</code>，默认将数据保存在本地 <code>data/</code> 忽略目录，并记录数据版本及校验信息。训练时须将数据集相机特征映射到模型使用的 camera1 / camera2 输入。
 
 ## 训练设置
 
