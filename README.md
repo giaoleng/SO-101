@@ -1,16 +1,33 @@
-
-
-
-
-
-
-
 # SO-101 Policy Benchmark & Real-World SmolVLA Diagnostics
 
 项目包含两个实验场景：
 
 - **MuJoCo Simulation**：在 SO-101 仿真环境中比较 ACT、Diffusion Policy 和 SmolVLA，完成红色方块抓取放置任务。
 - **Real Robot Manipulation**：围绕真实 SO-101 的 Cube → Cup 任务，按“失败模式视频展示 → 失败原因分析 → 固定策略示教数据 → SmolVLA 训练与评测”的顺序开展研究。数据阶段沿用 Clean、Randomized、Recovery、Color-varied 四种固定示教策略；本项目真机结果待实测。
+
+## 目录
+
+- [项目演示与核心结果](#highlights)
+
+### 一、项目概览与环境配置
+1. [项目概览与系统架构](#overview)
+2. [安装与环境配置](#installation)
+
+### 二、MuJoCo 仿真实验（开源数据集 + 多策略对比）
+3. [仿真环境与开源数据集处理](#sim-env-data)
+4. [仿真策略训练与闭环评测](#sim-train-eval)
+
+### 三、SO-101 真机实验（失败模式分析与固定策略数据采集）
+5. [真机平台与固定策略示教数据采集](#real-env-data)
+   - [真机部署模块：机械臂标定、相机标定与硬件检查](docs/REAL_HARDWARE_SETUP.md)
+6. [真机策略训练与失败模式评测](#real-train-eval)
+
+### 四、数据管理与复现规范
+7. [Hugging Face 数据管理](#huggingface)
+8. [实验复现与工程规范](#reproducibility)
+9. [许可证](#license)
+
+---
 
 <a id="highlights"></a>
 
@@ -113,25 +130,6 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 > **比较边界**：仿真任务是「红色方块 → 蓝色盒子」，真机任务是「方块 → 杯子」，两者不是同一个任务，因此仿真结果用于提供模型基线背景，不能作为严格的 Sim-to-Real 同任务对照。验证数据改进是否有效，应重点比较同一 Cube → Cup 任务下改进前后的真机成功率，并保持测试场景、成功判定标准和评测回合数一致。
 
 
-## 目录
-
-### 一、项目概览与环境配置
-1. [项目概览与系统架构](#overview)
-2. [安装与环境配置](#installation)
-
-### 二、MuJoCo 仿真实验（开源数据集 + 多策略对比）
-3. [仿真环境与开源数据集处理](#sim-env-data)
-4. [仿真策略训练与闭环评测](#sim-train-eval)
-
-### 三、SO-101 真机实验（失败模式分析与固定策略数据采集）
-5. [真机平台与固定策略示教数据采集](#real-env-data)
-   - [真机部署模块：机械臂标定、相机标定与硬件检查](docs/REAL_HARDWARE_SETUP.md)
-6. [真机策略训练与失败模式评测](#real-train-eval)
-
-### 四、数据管理与复现规范
-7. [Hugging Face 数据管理](#huggingface)
-8. [实验复现与工程规范](#reproducibility)
-9. [许可证](#license)
 
 ---
 
