@@ -4,6 +4,10 @@
 
 > **以下为历史接口资料**：原 ACT / 多目标示例、旧 checkpoint 路径及此前真机完成情况属于历史项目记录，不代表当前 Cube → Cup 数据策略实验；硬件配置仍为 `robot.hardware_confirmed: false`，运行必须重新核对标定、相机与安全限位。
 
+## 真机部署前置模块
+
+请先完成独立的 [SO-101 真机硬件部署指南](REAL_HARDWARE_SETUP.md)：[机械臂标定](real-hardware/ROBOT_CALIBRATION.md)、[相机标定](real-hardware/CAMERA_CALIBRATION.md) 和 [硬件检查](real-hardware/HARDWARE_CHECK.md)。本项目 LeRobot 0.5.1 的运行器要求 Follower 标定文件位于 robot.calibration_dir / <code>{robot.id}.json</code>；当前配置使用 <code>calibration/robots/so101_follower.json</code>。设备 JSON 保存在本机，不提交到仓库。
+
 ## 2026-11-08 工程交付记录
 
 新增入口：
@@ -30,16 +34,16 @@
 |---|---|
 | 串口 / 机器人ID | `/dev/ttyACM0` / `so101_follower` |
 | front / wrist相机 | 索引0 / 1，均640×480、30FPS |
-| 标定目录 | `./calibration/so101`，预期文件`so101_follower.json` |
+| 标定目录 | `./calibration/robots`，预期文件`so101_follower.json` |
 | ACT checkpoint | `./checkpoints/real_act/pretrained_model` |
 | 真机数据目录 | `./data/real_so101` |
 | 策略控制频率 | 20Hz |
 
 五个臂关节的参考范围取自仓库 `asset/so_arm100/SO101/so101_body.xml`，由弧度转换为角度；夹爪仍单独使用真机驱动0..100百分比。它们不能还原租用设备的零位偏移或工作空间限制。`robot.hardware_confirmed=false` 让参考配置保持可读、可静态检查，同时禁止直接启动硬件。
 
-没有设备时无需补造标定JSON、权重文件或相机序列号。以后若拿到实际设备及已有训练产物，再核对以下配置，并将hardware_confirmed设为true：
+没有设备时无需补造标定JSON、权重文件或相机序列号。拿到实际设备后，先按 [真机硬件部署指南](REAL_HARDWARE_SETUP.md) 完成标定与检查，再核对以下配置；所有检查通过后才可将 hardware_confirmed 设为 true：
 
-1. robot.port、id、calibration_dir。目录必须已有 `<id>.json`，入口不自动标定。标定来自同一台机械臂，连接后还核对电机标定状态。
+1. robot.port、id、calibration_dir。目录必须已有 `<id>.json`（当前默认路径为 `./calibration/robots/so101_follower.json`），入口不自动标定。标定必须来自同一台机械臂；Leader 和 Follower 分别使用不同 ID 与文件。
 2. cameras中的硬件名称、设备索引、尺寸与FPS。相机名应对应 `observation.images.<name>`，与训练元数据一致。
 3. policy.checkpoint和dataset_root。checkpoint目录应为LeRobot的pretrained_model，含config.json、model.safetensors，以及saved模式下两个processor JSON及其资产。
 4. 按本机标定/工作空间核对五臂关节joint_limits；当前已填模型参考范围。gripper限位是标定后的0..100百分比。

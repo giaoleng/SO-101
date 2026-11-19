@@ -1,0 +1,2 @@
+# Device-specific motor calibration must remain local.
+*.json

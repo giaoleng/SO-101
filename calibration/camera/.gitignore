@@ -1,0 +1,5 @@
+# Device-specific camera calibration outputs remain local.
+*.json
+*.yaml
+*.yml
+*.npz

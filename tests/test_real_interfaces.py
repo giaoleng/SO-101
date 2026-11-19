@@ -34,6 +34,7 @@ class RealInterfaces(unittest.TestCase):
         self.assertEqual(c.task('cube'), 'Pick up the cube and place it in the cup.')
         self.assertEqual(c.raw_features('cube'), {})
         self.assertFalse(self.cfg['robot']['hardware_confirmed'])
+        self.assertEqual(Path(self.cfg['robot']['calibration_dir']), (ROOT / 'calibration/robots').resolve())
 
     def test_target_vocabulary_and_feature_order(self):
         c = TaskConditioner(self.category_cfg)

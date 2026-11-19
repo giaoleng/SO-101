@@ -117,5 +117,8 @@ results/
 *.pt
 *.pth
 
-# Per-device hardware calibration
-/calibration/
+# Per-device hardware calibration: track docs/placeholders only; keep device JSON local.
+/calibration/*
+!/calibration/README.md
+!/calibration/robots/
+!/calibration/camera/

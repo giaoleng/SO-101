@@ -100,6 +100,7 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 ### 三、SO-101 真机实验（自主遥操作采集 + SmolVLA 部署）
 5. [真机平台与遥操作数据采集](#real-env-data)
+   - [真机部署模块：机械臂标定、相机标定与硬件检查](docs/REAL_HARDWARE_SETUP.md)
 6. [真机策略训练、部署与诊断评测](#real-train-eval)
 
 ### 四、数据管理与复现规范
@@ -355,7 +356,39 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 > **状态与参考**：本节将 Cube → Cup 真机实验重新组织为**待运行的、可复现的研究方案与离线/真机运行代码**。仓库当前未提供这套新任务的实机训练数据、Checkpoint 或评测日志，**本项目自己的真机成功率尚未实测**；上方真机视频来自 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，不是本项目实测。实验设计借鉴原项目的 [PROTOCOL.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/PROTOCOL.md) 和 [SETUP.md](https://github.com/Andresg324/so101-vla-data-study/blob/main/SETUP.md)；第 6.3 节**单独引用其真实成功率**供对照，不能将引用结果当成本项目的实测结果。此方案属于**不同示教数据分布下的离线模仿学习对照实验**，不是 DAgger。
 
 
-### 5.0 参考项目数据集与代码集成
+<a id="real-hardware-setup"></a>
+
+### 5.0 真机部署模块：机械臂标定、相机标定与硬件检查
+
+真机部署准备拆分为三个独立模块，正式采集或评测前按顺序完成：
+
+| 模块 | 主要工作 | 操作说明 |
+|---|---|---|
+| 机械臂标定 | 分别识别 Leader / Follower 串口，校准电机零点偏移与关节范围，保存本机 JSON | [机械臂标定指南](docs/real-hardware/ROBOT_CALIBRATION.md) |
+| 相机标定 | 识别 front / wrist 相机，固定安装与视角，核对分辨率、FPS、曝光和数据特征名；需要三维几何时再做内外参标定 | [相机标定指南](docs/real-hardware/CAMERA_CALIBRATION.md) |
+| 硬件检查 | 检查供电、机械装配、电机总线、急停、工作空间、关节限位和软件停止机制 | [硬件检查清单](docs/real-hardware/HARDWARE_CHECK.md) |
+
+总入口：[SO-101 真机硬件部署指南](docs/REAL_HARDWARE_SETUP.md)。本项目 LeRobot 版本基线为 0.5.1；命令和配置以该版本为准。
+
+本机文件布局：
+
+~~~text
+calibration/
+├── README.md
+├── robots/
+│   ├── .gitkeep
+│   └── .gitignore
+└── camera/
+    ├── README.md
+    └── reference/
+        └── .gitkeep
+~~~
+
+当前真机运行器从配置项 robot.calibration_dir / robot.id 读取 Follower 标定文件。默认目录为 <code>calibration/robots/</code>，机器人 ID 为 <code>so101_follower</code> 时，文件应为 <code>calibration/robots/so101_follower.json</code>。Leader 可使用独立 ID 保存自己的标定文件。
+
+**设备相关的机械臂标定 JSON 和相机内外参不提交到 GitHub**；仓库只保留目录、说明和参考资料占位文件。配置中的 <code>robot.hardware_confirmed</code> 继续默认为 <code>false</code>，完成本机检查前不要改为 <code>true</code>。
+
+### 5.1 参考项目数据集与代码集成
 
 参考来源：[Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study)，固定到上游提交 `175d3d057aa91ff785168400a24cc1410c140dbc`。**本项目只采用四组正式示教条件；Density（探索性实验）不纳入本项目，也不下载其数据或配置。**
 
@@ -405,7 +438,7 @@ python scripts/real/download_reference_datasets.py --condition clean recovery
 
 **相机特征兼容性**：参考数据集使用 `observation.images.overhead` 和 `observation.images.wrist`，训练时映射到策略的 `camera1`、`camera2`。本项目训练入口需要显式传入对应 `--rename-map`；真机推理时，当前配置中的 `front` 相机将作为 overhead 视角映射到 `camera1`，`wrist` 映射到 `camera2`。
 
-### 5.1 统一任务与控制变量
+### 5.2 统一任务与控制变量
 
 - **真机任务**：SO-101 抓取桌面方块并放入固定杯子；统一指令 <code>Pick up the cube and place it in the cup.</code>。
 - **固定条件**：同一机器人、相机与安装角度、固定复位位姿、杯子位置、训练初始权重、训练步数及评分标准。
@@ -413,7 +446,7 @@ python scripts/real/download_reference_datasets.py --condition clean recovery
 - **空间标记**：在本机安全工作区标记 T1–T10（训练位置）及 E1–E5（从未示教的评测位置）；T6 为固定基准位置。编号只代表实验位置，**参考项目的桌面坐标不可直接用于另一台机器人**。
 - **安全**：检查标定、关节限位、停止入口、实体急停、障碍物和夹爪极性；现有 <code>configs/real/so101.yaml</code> 默认 <code>robot.hardware_confirmed: false</code>，不会自动启用真机。
 
-### 5.2 四组数据采集条件（训练集）
+### 5.3 四组数据采集条件（训练集）
 
 采用**相同 SmolVLA 基础模型、每组 50 条专家示教**，只改变专家示教数据的采集方式：
 

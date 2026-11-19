@@ -5,7 +5,7 @@ robot:
   hardware_confirmed: false
   port: /dev/ttyACM0
   id: so101_follower
-  calibration_dir: ./calibration/so101  # 预期文件：so101_follower.json
+  calibration_dir: ./calibration/robots  # 预期文件：so101_follower.json
   use_degrees: true
   disable_torque_on_disconnect: true
   # 键为硬件相机名；必须与dataset meta/info.json的images键对应。
