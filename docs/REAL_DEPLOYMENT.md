@@ -1,10 +1,8 @@
-> **当前任务更新（2026-11-17）：** 真机参考任务已切换为 SmolVLA 的单方块入杯（Cube → Cup）。目前 `configs/real/so101.yaml` 的新默认值为 SmolVLA + language + cube；硬件开关仍为 `hardware_confirmed: false`，未连接机械臂、未运行新的真机回合。
->
-> **以下保留历史多玩具/ACT 接口开发记录**，其中的 ACT 命令、`red_car` / `yellow_duck` 示例及旧 checkpoint 地址仅用于追溯，不再代表当前真机默认实验。以 [README 第 11–13 节](../README.md#real-environment) 和最新 YAML 配置为准。
-
 # SO-101 真机部署与评测
 
-> **状态说明（2026-11-09）：** 项目维护者确认 SO-101 真机操作实验已经完成，ACT 与 SmolVLA 的汇总结果见 [README 第 13.5 节](../README.md#135-实验结果)。原始日志、权重、标定与测试视频未上传 GitHub。下文为 **2026-11-08 代码接口补全阶段** 的技术说明和参考配置，记录的是当轮开发与静态检查范围，不能据此判断整个项目目前尚未开展真机实验。
+> **当前 SmolVLA 真机研究方案（2026-11-18）**：采用参考项目 [Andresg324/so101-vla-data-study](https://github.com/Andresg324/so101-vla-data-study) 的固定预算示教数据策略对照设计。新入口为 `scripts/real/study_protocol.py`、`record_study.py`、`train_study.py`、`evaluate_study.py` 和 `summarize_study.py`；详细的四组训练条件、五类评测场景和运行命令以 [README §5–6](../README.md#real-env-data) 为准。当前 Cube → Cup 任务**尚无本仓库独立可核实的真机评测成绩**，新脚本默认 dry-run。
+
+> **以下为历史接口资料**：原 ACT / 多目标示例、旧 checkpoint 路径及此前真机完成情况属于历史项目记录，不代表当前 Cube → Cup 数据策略实验；硬件配置仍为 `robot.hardware_confirmed: false`，运行必须重新核对标定、相机与安全限位。
 
 ## 2026-11-08 工程交付记录
 
