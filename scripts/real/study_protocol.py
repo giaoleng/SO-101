@@ -48,7 +48,7 @@ def evaluation_plan(cell: str) -> list[dict]:
     result = []
     for index in range(WARMUP_EPISODES + SCORED_EPISODES):
         scored_index = max(index - WARMUP_EPISODES, 0)
-        position = HELD_OUT[scored_index // 3] if cell == 'new_positions' else 'T6'
+        position = HELD_OUT[scored_index % len(HELD_OUT)] if cell == 'new_positions' else 'T6'
         scene = {
             'eval_cell': cell,
             'episode': index,
