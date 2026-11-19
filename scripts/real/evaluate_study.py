@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import hashlib
 from pathlib import Path
 import sys
 
@@ -80,6 +81,11 @@ def main(argv=None):
         cameras[new_name] = settings
     cfg['robot']['cameras'] = cameras
     cfg['policy']['dataset_root'] = str(Path(manifest['dataset_root']))
+    weights = Path(cfg['policy']['checkpoint']) / 'model.safetensors'
+    with weights.open('rb') as fh:
+        digest = hashlib.file_digest(fh, 'sha256').hexdigest()
+    if digest != manifest.get('model_sha256'):
+        p.error('Checkpoint weights do not match the training manifest')
     if Path(local_path(args.output)).exists():
         p.error('Output JSONL already exists; refuse to overwrite')
     recorder = JsonlRecorder(local_path(args.output), {**metadata(cfg), 'training_manifest': str(local_path(args.training_manifest))})
