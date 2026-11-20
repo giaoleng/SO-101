@@ -70,6 +70,11 @@ def main(argv=None) -> int:
         default=Path("data/real_demonstrations"),
     )
     parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing local condition folders. Without this flag, existing data is preserved.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="List the subset download plan without downloading files.",
@@ -135,6 +140,10 @@ def main(argv=None) -> int:
 
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
+            if not args.overwrite:
+                raise FileExistsError(
+                    f"{target} already exists; remove it manually or pass --overwrite to replace it."
+                )
             shutil.rmtree(target)
         shutil.copytree(source, target)
 
