@@ -8,27 +8,27 @@
 ## 目录
 
 - [一、项目演示与核心结果](#highlights)
-  - [1.1 MuJoCo 仿真演示](#highlights)
-  - [1.2 SO-101 真机演示与失败模式分析](#highlights)
-  - [1.3 仿真结果与真机实验结果说明](#highlights)
+  - [1.1 MuJoCo 仿真演示](#demo-sim)
+  - [1.2 SO-101 真机演示与失败模式分析](#demo-real)
+  - [1.3 仿真结果与真机实验结果说明](#demo-results)
 - [二、项目概览与环境配置](#overview)
-  - [2.1 项目概览与系统架构](#overview)
-  - [2.2 安装与环境配置](#installation)
+  - [2.1 项目概览与系统架构](#project-overview)
+  - [2.2 安装与环境配置](#docker-env)
 - [三、MuJoCo 仿真实验](#sim-env-data)
-  - [3.1 SO-101 MuJoCo 仿真场景](#sim-env-data)
-  - [3.2 开源数据集转换与质量校验](#sim-env-data)
-  - [3.3 三种模仿学习策略训练](#sim-train-eval)
-  - [3.4 统一闭环评测与 ID / OOD 实验设计](#sim-train-eval)
-  - [3.5 仿真评测指标定义](#sim-train-eval)
+  - [3.1 SO-101 MuJoCo 仿真场景](#sim-scene)
+  - [3.2 开源数据集转换与质量校验](#sim-dataset)
+  - [3.3 三种模仿学习策略训练](#sim-training)
+  - [3.4 统一闭环评测与 ID / OOD 实验设计](#sim-evaluation)
+  - [3.5 仿真评测指标定义](#sim-metrics)
 - [四、SO-101 真机实验](#real-env-data)
   - [4.1 真机部署、机械臂标定与硬件检查](#real-hardware-setup)
-  - [4.2 四组示教数据集](#real-env-data)
-  - [4.3 统一任务与控制变量](#real-env-data)
-  - [4.4 固定策略示教数据采集](#real-env-data)
-  - [4.5 SmolVLA 训练与真机评测](#real-train-eval)
-  - [4.6 失败模式统计与结果分析](#real-train-eval)
+  - [4.2 四组示教数据集](#real-datasets)
+  - [4.3 统一任务与控制变量](#real-controls)
+  - [4.4 固定策略示教数据采集](#real-collection)
+  - [4.5 SmolVLA 训练与真机评测](#real-training)
+  - [4.6 失败模式统计与结果分析](#real-results)
 - [五、数据管理与复现规范](#huggingface)
-  - [5.1 Hugging Face 数据管理](#huggingface)
+  - [5.1 Hugging Face 数据管理](#hf-data)
   - [5.2 实验复现与工程规范](#reproducibility)
 - [六、许可证](#license)
 ---
@@ -36,6 +36,8 @@
 <a id="highlights"></a>
 
 ## 项目演示与核心结果
+
+<a id="demo-sim"></a>
 
 ### 仿真成功与失败视频
 
@@ -57,6 +59,8 @@ https://github.com/user-attachments/assets/b897b248-aaac-427f-8586-3e0412ba6b23
 | **Success Rate ↑** | 89% | 80% | **95%** |
 | OOD Success Rate ↑ | 72% | 62% | **83%** |
 
+
+<a id="demo-real"></a>
 
 ### 真机失败模式视频
 
@@ -116,6 +120,8 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 这四组数据分别用于训练和评测，观察不同示教条件对失败表现的影响。No Motion 需要先排查硬件、通信和控制链路，不能仅凭增加示教数据就认定能够解决。
 
+<a id="demo-results"></a>
+
 ### 仿真与真机实验结果概览
 
 | 实验 | 模型 / 数据条件 | 结果 |
@@ -140,6 +146,8 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 - **MuJoCo 仿真实验**：基于开源 LeRobot 数据集，在统一的 SO-101 物理仿真环境中独立完成了 **ACT**、**Diffusion Policy** 与 **SmolVLA** 三种模仿学习策略的训练、超参对齐与分布内/分布外（ID / OOD）闭环评测。
 - **SO-101 真机实验**：以 **SmolVLA** 为固定模型，完成 Reach、No Motion 和 Recovery 等失败模式分析，采集 Clean、Randomized、Recovery、Color-varied 四组示教数据，分别训练并按统一协议评测 Baseline 与四组策略模型。
 
+<a id="project-overview"></a>
+
 ### 1.1 仿真与真机实验对比
 
 | 维度 | MuJoCo 仿真实验 | SO-101 真机实验 |
@@ -150,6 +158,8 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 | **对比策略** | **ACT** vs. **Diffusion Policy** vs. **SmolVLA** | **SmolVLA**（相同模型架构在不同示教策略下的行为诊断） |
 | **语言指令** | 固定仿真任务描述 | `Pick up the cube and place it in the cup.` |
 | **核心研究问题** | 三类主流模仿学习架构在 ID 与 OOD 位置泛化下的性能边界 | 不同固定示教数据策略对真机任务成功率、位置泛化和失败行为有何影响 |
+
+<a id="system-pipeline"></a>
 
 ### 1.2 系统流水线
 
@@ -195,6 +205,8 @@ SmolVLA 微调训练
 
 ## 2. 安装与环境配置
 
+<a id="docker-env"></a>
+
 ### 2.1 Docker 环境（推荐）
 
 仓库提供两套独立镜像，按计算负载区分使用：
@@ -217,6 +229,8 @@ docker run --rm -it --gpus all -v "$PWD:/workspace" lerobot_mujoco_sim:train
 ```
 
 亦可通过 Docker Compose 启动 CPU 服务（`docker compose up -d lerobot-runtime && docker compose exec lerobot-runtime bash`）；GPU 训练建议直接使用上述 `docker run --gpus all` 命令。
+
+<a id="python-env"></a>
 
 ### 2.2 本地 Python 虚拟环境
 
@@ -242,6 +256,8 @@ python -c "import mujoco, torch, lerobot; print('MuJoCo:', mujoco.__version__, '
 
 ## 3. 仿真环境与数据集处理
 
+<a id="sim-scene"></a>
+
 ### 3.1 SO-101 MuJoCo 仿真场景
 
 仿真环境使用 SO-101 机械臂 MJCF 模型搭建，包含 5 个旋转关节与 1 个夹爪自由度：
@@ -249,6 +265,8 @@ python -c "import mujoco, torch, lerobot; print('MuJoCo:', mujoco.__version__, '
 - **场景定义**：`asset/scene_so101_y.xml`（包含 SO-101 机械臂、桌面、蓝色收纳盒、红色目标方块、多色干扰方块及双视角 RGB 相机）。
 - **环境封装**：`mujoco_env/y_env.py`（负责 Episode 重置、物体初始位姿随机采样、关节状态读取、相机渲染及动作步进）。
 - *(注：仓库同时保留基于 Mink IK + 有限状态机的脚本控制器 `controllers/scripted_fsm_controller.py` 与采集工具 `scripts/collect/`，用于场景调试和后续扩展；三策略对比实验使用统一的数据集与评测流程。)*
+
+<a id="sim-dataset"></a>
 
 ### 3.2 开源数据集转换与质量校验
 
@@ -275,6 +293,8 @@ python scripts/convert_lerobot_dataset_v21_to_v30_local.py \
 <a id="sim-train-eval"></a>
 
 ## 4. 仿真策略训练与闭环评测
+
+<a id="sim-training"></a>
 
 ### 4.1 三种模仿学习策略训练
 
@@ -316,6 +336,8 @@ lerobot-train \
   --policy.push_to_hub=false \
   --output_dir=outputs/train/smolvla
 ```
+
+<a id="sim-evaluation"></a>
 
 ### 4.2 统一闭环评测与 ID / OOD 实验设计
 
@@ -369,6 +391,8 @@ python scripts/eval/summarize_rollouts.py outputs/eval/act_id_seed42.jsonl \
 
 > **使用提示**：`--top-feature` 与 `--wrist-feature` 需与训练数据集特征名严格一致（旧版数据集可能使用 `observation.image` 与 `observation.wrist_image`）；若 Checkpoint 目录未保存处理器 JSON，可改用 `--processors dataset` 自动从本地 `meta/stats.json` 构建归一化参数。
 
+<a id="sim-metrics"></a>
+
 ### 4.3 仿真评测指标定义
 
 | 指标 | 定义说明 | 优化方向 |
@@ -420,6 +444,8 @@ calibration/
 
 **设备相关的机械臂标定 JSON 和相机内外参不提交到 GitHub**；仓库只保留目录结构和说明文件。配置中的 <code>robot.hardware_confirmed</code> 继续默认为 <code>false</code>，完成本机检查前不要改为 <code>true</code>。
 
+<a id="real-datasets"></a>
+
 ### 5.1 四组示教数据集
 
 本项目的真机示教数据存放于 Hugging Face 数据集 [`giaobo/so101-smovla`](https://huggingface.co/datasets/giaobo/so101-smovla)，其中包含 Clean、Randomized、Recovery、Color-varied 四个子目录，每组 50 条示教。各子目录均按 LeRobotDataset 结构保存，并在下载后检查回合数、30 FPS、六维 action/state 及 overhead/wrist 双相机特征。
@@ -452,6 +478,8 @@ python -m pip install -U huggingface_hub
 
 训练时将数据集的 `observation.images.overhead`、`observation.images.wrist` 映射到策略输入的 `camera1`、`camera2`；真机推理时使用 front / wrist 两路相机。相机名称、分辨率、FPS 和特征映射必须与训练配置一致。
 
+<a id="real-controls"></a>
+
 ### 5.2 统一任务与控制变量
 
 - **真机任务**：SO-101 抓取桌面方块并放入固定杯子；统一指令 <code>Pick up the cube and place it in the cup.</code>。
@@ -459,6 +487,8 @@ python -m pip install -U huggingface_hub
 - **双路相机**：前/全局与腕部相机（目标配置 640×480、30 FPS）。必须核对实际设备名称与训练权重的 <code>rename_map</code>，按本机相机索引配置。
 - **空间标记**：在本机安全工作区标记 T1–T10（训练位置）及 E1–E5（从未示教的评测位置）；T6 为固定基准位置。编号只代表实验位置，桌面坐标需按实际机器人重新标定。
 - **安全**：检查标定、关节限位、停止入口、实体急停、障碍物和夹爪极性；现有 <code>configs/real/so101.yaml</code> 默认 <code>robot.hardware_confirmed: false</code>，不会自动启用真机。
+
+<a id="real-collection"></a>
 
 ### 5.3 根据失败模式组织四组固定策略示教数据
 
@@ -495,6 +525,8 @@ python scripts/real/record_study.py \
 
 ## 6. 真机 SmolVLA 训练与失败模式评测
 
+<a id="real-training"></a>
+
 ### 6.1 五个真机 SmolVLA 模型的训练对照
 
 正式比较包含 **1 个原始真机基线 + 4 个固定策略改进模型**，所有模型只使用一个训练种子（Seed 1000），共 **5 个独立训练运行**。五个模型使用相同 SmolVLA 基础权重和训练预算（10,000 steps、batch size 32、每 2,000 steps 保存 checkpoint），只改变训练数据条件。
@@ -528,6 +560,8 @@ python scripts/real/train_study.py \
 
 训练入口默认实际运行（可用 `--dry-run` 仅输出命令），并检查数据集回合数及六维真机关节特征：Baseline 数据集至少包含 1 条有效示教；四种固定策略数据集必须各为 50 条。运行后在对应训练输出目录生成 <code>study_manifest.json</code>，记录训练条件、Seed、数据集、权重 SHA-256 和训练预算，供评测入口核验。全部数据与权重保持本地，不默认上传 Hub。
 
+<a id="real-evaluation"></a>
+
 ### 6.2 五类统一评测场景
 
 五个模型（Baseline、Clean、Randomized、Recovery、Color-varied）各自在同样的五类场景下测试。**每个模型共 100 次正式计分：ID 40 次，四个 OOD 场景各 15 次。**每个模型在每个场景另做 1 次预热，不计入成功率。
@@ -560,6 +594,8 @@ python scripts/real/evaluate_study.py \
 
 正式评测时，Baseline 与四组改进模型都必须使用各自训练生成的 <code>study_manifest.json</code>；入口会核对 condition、seed、训练预算和 checkpoint SHA-256。原有的 <code>scripts/real/deploy_policy.py</code> 和 <code>scripts/real/evaluate_policy.py</code> 仍可用于单次安全部署和探索性排查；**正式五模型对照**使用 <code>evaluate_study.py</code>，不能将探索性与注册评测混在同一统计分母里。
 
+<a id="real-failure-analysis"></a>
+
 ### 6.3 失败模式统计：从整体成功率定位薄弱环节
 
 ~~~bash
@@ -571,6 +607,8 @@ python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
 汇总按**模型条件 × 训练种子 × 评测场景**输出成功次数、成功率和 Wilson 95% 区间，并为每个模型追加一行 <code>all_cells</code> 整体成功率（100 次正式计分）。<code>--strict</code> 会校验全部 5 × 1 × 5 个分组、每个场景的准确回合数及计分回合编号；预热和中断回合不计入分母。
 
 行为诊断同时包含 **No-Motion Rate、Reach Rate、Grasp Rate、Drop Rate、Re-grasp per Drop、Recovery per Drop**。若尚未完整标注某阶段，指标显示为空，不自动假设失败或成功。当前运行器保存每回合推理延迟、控制步数、限幅次数及操作者标签；**逐步关节轨迹、动作方向角和相机视频并未自动保存**，因此当前统计主要用于回合级和阶段级失败分析。
+
+<a id="real-results"></a>
 
 ### 6.4 评测结果统计与分析
 
@@ -587,6 +625,8 @@ Baseline 与四组固定策略模型的训练和统一真机评测均已完成�
 
 
 <a id="huggingface"></a>
+
+<a id="hf-data"></a>
 
 ## 7. Hugging Face 数据管理
 
