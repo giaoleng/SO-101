@@ -8,29 +8,35 @@
 ## 目录
 
 - [一、项目演示与核心结果](#highlights)
-  - [1.1 MuJoCo 仿真演示](#demo-sim)
-  - [1.2 SO-101 真机演示与失败模式分析](#demo-real)
-  - [1.3 仿真结果与真机实验结果说明](#demo-results)
+  - [仿真成功与失败视频](#demo-sim)
+  - [真机失败模式视频](#demo-real)
+  - [失败模式分析与固定策略示教数据](#failure-analysis)
+  - [仿真与真机实验结果概览](#demo-results)
 - [二、项目概览与环境配置](#overview)
-  - [2.1 项目概览与系统架构](#project-overview)
-  - [2.2 安装与环境配置](#docker-env)
+  - [1.1 仿真与真机实验对比](#project-overview)
+  - [1.2 系统流水线](#system-pipeline)
+  - [2.1 Docker 环境](#docker-env)
+  - [2.2 本地 Python 虚拟环境](#python-env)
 - [三、MuJoCo 仿真实验](#sim-env-data)
   - [3.1 SO-101 MuJoCo 仿真场景](#sim-scene)
   - [3.2 开源数据集转换与质量校验](#sim-dataset)
-  - [3.3 三种模仿学习策略训练](#sim-training)
-  - [3.4 统一闭环评测与 ID / OOD 实验设计](#sim-evaluation)
-  - [3.5 仿真评测指标定义](#sim-metrics)
+  - [4.1 三种模仿学习策略训练](#sim-training)
+  - [4.2 统一闭环评测与 ID / OOD 实验设计](#sim-evaluation)
+  - [4.3 仿真评测指标定义](#sim-metrics)
 - [四、SO-101 真机实验](#real-env-data)
-  - [4.1 真机部署、机械臂标定与硬件检查](#real-hardware-setup)
-  - [4.2 四组示教数据集](#real-datasets)
-  - [4.3 统一任务与控制变量](#real-controls)
-  - [4.4 固定策略示教数据采集](#real-collection)
-  - [4.5 SmolVLA 训练与真机评测](#real-training)
-  - [4.6 失败模式统计与结果分析](#real-results)
+  - [5.0 真机部署模块：机械臂标定、相机标定与硬件检查](#real-hardware-setup)
+  - [5.1 四组示教数据集](#real-datasets)
+  - [5.2 统一任务与控制变量](#real-controls)
+  - [5.3 固定策略示教数据采集](#real-collection)
+  - [6.1 五个真机 SmolVLA 模型的训练对照](#real-training)
+  - [6.2 五类统一评测场景](#real-evaluation)
+  - [6.3 失败模式统计](#real-failure-analysis)
+  - [6.4 评测结果统计与分析](#real-results)
 - [五、数据管理与复现规范](#huggingface)
-  - [5.1 Hugging Face 数据管理](#hf-data)
-  - [5.2 实验复现与工程规范](#reproducibility)
+  - [7. Hugging Face 数据管理](#hf-data)
+  - [8. 实验复现与工程规范](#reproducibility)
 - [六、许可证](#license)
+  - [9. 许可证](#license)
 ---
 
 <a id="highlights"></a>
@@ -95,6 +101,8 @@ https://github.com/user-attachments/assets/54a7244c-4357-44bf-8dc6-48e12bf8f12b
 https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 视频展示方块掉落后机械臂再次接近并抓起方块的过程，作为恢复动作的成功案例展示；单个案例不代表整体恢复成功率。
+
+<a id="failure-analysis"></a>
 
 ### 失败模式分析
 
