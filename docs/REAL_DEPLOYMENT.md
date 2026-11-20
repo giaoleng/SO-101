@@ -39,7 +39,7 @@
 | Recovery | 包含主动释放、重新抓取的示教 | 掉落后的恢复能力 |
 | Color-varied | 红、橙、黄、蓝、紫五种颜色示教 | 外观变化下的任务表现 |
 
-数据包含双相机图像、六维 action/state 和任务指令。下载入口为 <code>scripts/real/download_reference_datasets.py</code>，默认将数据保存在本地 <code>data/</code> 忽略目录，并记录数据版本及校验信息。训练时须将数据集相机特征映射到模型使用的 camera1 / camera2 输入。
+四组数据统一存放于 [<code>giaobo/so101-smovla</code>](https://huggingface.co/datasets/giaobo/so101-smovla)，分别位于 <code>cube-pickup-clean</code>、<code>cube-pickup-randomized</code>、<code>cube-pickup-recovery</code>、<code>cube-pickup-color</code> 子目录。数据包含双相机图像、六维 action/state 和任务指令。下载入口为 <code>scripts/real/download_study_datasets.py</code>，默认将四个子目录分别保存至本地 <code>data/real_demonstrations/{clean,randomized,recovery,color}/</code>，并记录统一仓库 commit SHA 及各子目录校验信息。训练时须将数据集相机特征映射到模型使用的 camera1 / camera2 输入。
 
 ## 训练设置
 
@@ -59,7 +59,7 @@
 python scripts/real/train_study.py \
   --condition clean --seed 1000 \
   --dataset-root data/real_demonstrations/clean \
-  --repo-id YOUR_DATASET_REPO_ID \
+  --repo-id giaobo/so101-smovla \
   --base-model /path/to/local/smolvla_base \
   --output outputs/train/real_clean_seed1000 \
   --execute
