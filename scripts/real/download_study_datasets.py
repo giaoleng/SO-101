@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Download the four SO-101 demonstration datasets used in the real-robot study.
+"""Download the four real-robot study subsets from the project's Hugging Face dataset.
 
-The binary LeRobot data is kept under data/ (git-ignored), not committed to Git.
-Each download is pinned to the Hugging Face dataset commit resolved at download time
-and recorded in download_manifest.json for reproducibility.
+Source: https://huggingface.co/datasets/giaobo/so101-smovla
+The four condition folders are stored in one Dataset repository. Each subset is
+copied into data/real_demonstrations/<condition> for independent training.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
-DATASETS = {
-    "clean": "Andresg324/cube-pickup-clean_20260809_105745",
-    "randomized": "Andresg324/cube-pickup-randomized_20260809_115825",
-    "recovery": "Andresg324/cube-pickup-recovery_20260809_141725",
-    "color": "Andresg324/cube-pickup-color_20260809_183224",
+DATASET_REPO_ID = "giaobo/so101-smovla"
+DATASET_DIRS = {
+    "clean": "cube-pickup-clean",
+    "randomized": "cube-pickup-randomized",
+    "recovery": "cube-pickup-recovery",
+    "color": "cube-pickup-color",
 }
 EXPECTED_EPISODES = 50
 EXPECTED_FPS = 30
@@ -26,7 +28,6 @@ REQUIRED_FEATURES = (
     "observation.images.overhead",
     "observation.images.wrist",
 )
-ALLOW_PATTERNS = ("meta/**", "data/**", "videos/**", "README.md", "LICENSE")
 
 
 def validate_dataset_metadata(metadata: dict[str, Any]) -> None:
@@ -59,9 +60,9 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--condition",
         nargs="+",
-        choices=tuple(DATASETS),
-        default=list(DATASETS),
-        help="Conditions to download; defaults to all four registered conditions.",
+        choices=tuple(DATASET_DIRS),
+        default=list(DATASET_DIRS),
+        help="Conditions to download; defaults to all four subsets.",
     )
     parser.add_argument(
         "--output-root",
@@ -71,14 +72,15 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="List the four-condition download plan without downloading files.",
+        help="List the subset download plan without downloading files.",
     )
     args = parser.parse_args(argv)
 
     plan = [
         {
             "condition": condition,
-            "repo_id": DATASETS[condition],
+            "repo_id": DATASET_REPO_ID,
+            "source_dir": DATASET_DIRS[condition],
             "target": str(args.output_root / condition),
         }
         for condition in args.condition
@@ -96,49 +98,55 @@ def main(argv=None) -> int:
         ) from exc
 
     api = HfApi()
-    completed = {}
-    args.output_root.mkdir(parents=True, exist_ok=True)
+    repo_info = api.dataset_info(
+        repo_id=DATASET_REPO_ID,
+        revision="main",
+        files_metadata=True,
+    )
+    revision = repo_info.sha
+    if not revision:
+        raise RuntimeError(f"Could not resolve an immutable revision for {DATASET_REPO_ID}")
 
+    staging = args.output_root / ".hub_snapshot"
+    args.output_root.mkdir(parents=True, exist_ok=True)
+    allow_patterns = [f"{DATASET_DIRS[c]}/**" for c in args.condition]
+    print(f"Resolving {DATASET_REPO_ID} at {revision} ...")
+    snapshot_download(
+        repo_id=DATASET_REPO_ID,
+        repo_type="dataset",
+        revision=revision,
+        local_dir=str(staging),
+        allow_patterns=allow_patterns,
+    )
+
+    siblings = getattr(repo_info, "siblings", None) or []
+    completed = {}
     for item in plan:
         condition = item["condition"]
-        repo_id = item["repo_id"]
+        source = staging / item["source_dir"]
         target = Path(item["target"])
-        print(f"[{condition}] Resolving {repo_id} ...")
-        repo_info = api.dataset_info(
-            repo_id=repo_id,
-            revision="main",
-            files_metadata=True,
-        )
-        revision = repo_info.sha
-        if not revision:
-            raise RuntimeError(f"Could not resolve an immutable revision for {repo_id}")
-
-        print(f"[{condition}] Downloading revision {revision} to {target} ...")
-        snapshot_download(
-            repo_id=repo_id,
-            repo_type="dataset",
-            revision=revision,
-            local_dir=str(target),
-            allow_patterns=list(ALLOW_PATTERNS),
-        )
-
-        info_path = target / "meta" / "info.json"
+        info_path = source / "meta" / "info.json"
         if not info_path.is_file():
-            raise FileNotFoundError(f"Downloaded dataset is missing {info_path}")
+            raise FileNotFoundError(
+                f"Dataset subset '{item['source_dir']}' is missing {info_path}"
+            )
         metadata = json.loads(info_path.read_text(encoding="utf-8"))
         validate_dataset_metadata(metadata)
 
-        siblings = getattr(repo_info, "siblings", None) or []
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.copytree(source, target)
+
+        prefix = item["source_dir"] + "/"
         total_bytes = sum(
             getattr(sibling, "size", 0) or 0
             for sibling in siblings
-            if any(
-                getattr(sibling, "rfilename", "").startswith(prefix.rstrip("*"))
-                for prefix in ("meta/", "data/", "videos/")
-            )
+            if getattr(sibling, "rfilename", "").startswith(prefix)
         )
         completed[condition] = {
-            "repo_id": repo_id,
+            "repo_id": DATASET_REPO_ID,
+            "source_dir": item["source_dir"],
             "revision": revision,
             "local_path": str(target),
             "license": _card_license(repo_info),
@@ -157,9 +165,7 @@ def main(argv=None) -> int:
     temporary_path = manifest_path.with_suffix(".json.tmp")
     temporary_path.write_text(
         json.dumps(
-            {
-                "conditions": completed,
-            },
+            {"source_repo_id": DATASET_REPO_ID, "revision": revision, "conditions": completed},
             ensure_ascii=False,
             indent=2,
         )
@@ -167,6 +173,7 @@ def main(argv=None) -> int:
         encoding="utf-8",
     )
     temporary_path.replace(manifest_path)
+    shutil.rmtree(staging, ignore_errors=True)
     print(f"Download manifest: {manifest_path}")
     return 0
 
