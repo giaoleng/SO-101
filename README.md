@@ -418,7 +418,7 @@ calibration/
 
 ### 5.1 四组示教数据集
 
-真机实验使用你维护的 Hugging Face 数据集 [`giaobo/so101-smovla`](https://huggingface.co/datasets/giaobo/so101-smovla)，其中包含 Clean、Randomized、Recovery、Color-varied 四个子目录，每组 50 条示教。各子目录均按 LeRobotDataset 结构保存，并在下载后检查回合数、30 FPS、六维 action/state 及 overhead/wrist 双相机特征。
+本项目的真机示教数据存放于 Hugging Face 数据集 [`giaobo/so101-smovla`](https://huggingface.co/datasets/giaobo/so101-smovla)，其中包含 Clean、Randomized、Recovery、Color-varied 四个子目录，每组 50 条示教。各子目录均按 LeRobotDataset 结构保存，并在下载后检查回合数、30 FPS、六维 action/state 及 overhead/wrist 双相机特征。
 
 | 数据条件 | 数据集 | 回合数 | 用途 |
 |---|---|---:|---|
