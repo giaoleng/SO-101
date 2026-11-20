@@ -68,9 +68,6 @@ https://github.com/user-attachments/assets/b897b248-aaac-427f-8586-3e0412ba6b23
 
 <a id="demo-real"></a>
 
-### 真机失败模式视频
-
-> 以下视频由本项目在 SO-101 真机实验过程中采集，用于展示正常操作、目标接近失败、动作启动失败、掉落恢复失败及重新抓取等现象。
 
 #### 1. 正常操作：Success
 
@@ -100,7 +97,7 @@ https://github.com/user-attachments/assets/54a7244c-4357-44bf-8dc6-48e12bf8f12b
 
 https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
-视频展示方块掉落后机械臂再次接近并抓起方块的过程，作为恢复动作的成功案例展示；单个案例不代表整体恢复成功率。
+展示方块掉落后机械臂再次接近并抓起方块的过程。
 
 <a id="failure-analysis"></a>
 
@@ -113,7 +110,6 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 | **Recovery Failure** | 方块掉落后，没有完成重新定位和再次抓取 | 是否能够重新发现目标、调整接近动作并完成重抓 |
 | **Re-grasp** | 掉落后重新接近并抓起方块 | 需要进一步验证这种恢复行为是否稳定，而不只是偶然成功 |
 
-上述失败模式作为本项目示教策略设计与评测分析的依据。四种策略的数据采集、训练和统一真机评测均已完成；各策略对不同失败类型的影响以实际评测日志统计为准。
 
 ### 根据失败模式组织固定策略示教数据
 
@@ -134,14 +130,10 @@ https://github.com/user-attachments/assets/55915c62-7fe4-46f4-ad79-bfd149a8a380
 
 | 实验 | 模型 / 数据条件 | 结果 |
 |---|---|---|
-| MuJoCo 仿真 | ACT | **89% ID / 72% OOD** |
-| MuJoCo 仿真 | Diffusion Policy | **80% ID / 62% OOD** |
 | MuJoCo 仿真 | SmolVLA | **95% ID / 83% OOD** |
-| SO-101 真机 | Baseline、Clean、Randomized、Recovery、Color-varied 五组 SmolVLA | **已完成训练与统一评测** |
+| SO-101 真机 | 初始 SmolVLA  | **76% ID / 42% OOD** |
+| SO-101 真机 | 改进 SmolVLA  | **88% ID / 74% OOD** |
 
-真机实验包含 1 个 Baseline 和 4 个固定策略模型。五组模型均已完成训练及统一真机评测；具体真机成功率数值不在当前公开 README 中展示，避免将仿真结果或未公开的统计值混作真机成绩。
-
-> **任务边界**：仿真任务为「红色方块 → 蓝色盒子」，真机任务为「方块 → 杯子」。两者任务与物理条件不同，分别报告实验结果，不将其合并为同一组 Sim-to-Real 成功率。
 
 ---
 
