@@ -7,26 +7,30 @@
 
 ## 目录
 
-- [项目演示与核心结果](#highlights)
-
-### 一、项目概览与环境配置
-1. [项目概览与系统架构](#overview)
-2. [安装与环境配置](#installation)
-
-### 二、MuJoCo 仿真实验（数据处理 + 多策略对比）
-3. [仿真环境与数据集处理](#sim-env-data)
-4. [仿真策略训练与闭环评测](#sim-train-eval)
-
-### 三、SO-101 真机实验（失败模式分析与固定策略数据评测）
-5. [真机平台与固定策略示教数据采集](#real-env-data)
-   - [真机部署模块：机械臂标定、相机标定与硬件检查](docs/REAL_HARDWARE_SETUP.md)
-6. [真机策略训练与失败模式评测](#real-train-eval)
-
-### 四、数据管理与复现规范
-7. [Hugging Face 数据管理](#huggingface)
-8. [实验复现与工程规范](#reproducibility)
-9. [许可证](#license)
-
+- [一、项目演示与核心结果](#highlights)
+  - [1.1 MuJoCo 仿真演示](#highlights)
+  - [1.2 SO-101 真机演示与失败模式分析](#highlights)
+  - [1.3 仿真结果与真机实验结果说明](#highlights)
+- [二、项目概览与环境配置](#overview)
+  - [2.1 项目概览与系统架构](#overview)
+  - [2.2 安装与环境配置](#installation)
+- [三、MuJoCo 仿真实验](#sim-env-data)
+  - [3.1 SO-101 MuJoCo 仿真场景](#sim-env-data)
+  - [3.2 开源数据集转换与质量校验](#sim-env-data)
+  - [3.3 三种模仿学习策略训练](#sim-train-eval)
+  - [3.4 统一闭环评测与 ID / OOD 实验设计](#sim-train-eval)
+  - [3.5 仿真评测指标定义](#sim-train-eval)
+- [四、SO-101 真机实验](#real-env-data)
+  - [4.1 真机部署、机械臂标定与硬件检查](#real-hardware-setup)
+  - [4.2 四组示教数据集](#real-env-data)
+  - [4.3 统一任务与控制变量](#real-env-data)
+  - [4.4 固定策略示教数据采集](#real-env-data)
+  - [4.5 SmolVLA 训练与真机评测](#real-train-eval)
+  - [4.6 失败模式统计与结果分析](#real-train-eval)
+- [五、数据管理与复现规范](#huggingface)
+  - [5.1 Hugging Face 数据管理](#huggingface)
+  - [5.2 实验复现与工程规范](#reproducibility)
+- [六、许可证](#license)
 ---
 
 <a id="highlights"></a>
