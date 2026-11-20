@@ -414,7 +414,7 @@ calibration/
 
 当前真机运行器从配置项 robot.calibration_dir / robot.id 读取 Follower 标定文件。默认目录为 <code>calibration/robots/</code>，机器人 ID 为 <code>so101_follower</code> 时，文件应为 <code>calibration/robots/so101_follower.json</code>。Leader 可使用独立 ID 保存自己的标定文件。
 
-**设备相关的机械臂标定 JSON 和相机内外参不提交到 GitHub**；仓库只保留目录、说明和参考资料占位文件。配置中的 <code>robot.hardware_confirmed</code> 继续默认为 <code>false</code>，完成本机检查前不要改为 <code>true</code>。
+**设备相关的机械臂标定 JSON 和相机内外参不提交到 GitHub**；仓库只保留目录结构和说明文件。配置中的 <code>robot.hardware_confirmed</code> 继续默认为 <code>false</code>，完成本机检查前不要改为 <code>true</code>。
 
 ### 5.1 四组示教数据集
 
@@ -422,12 +422,12 @@ calibration/
 
 | 数据条件 | 数据集 | 回合数 | 用途 |
 |---|---|---:|---|
-| Clean | `cube-pickup-clean_20260809_105745` | 50 | 固定位置正常示教 |
-| Randomized | `cube-pickup-randomized_20260809_115825` | 50 | 10 个训练位置轮换 |
-| Recovery | `cube-pickup-recovery_20260809_141725` | 50 | 包含主动释放与重新抓取 |
-| Color-varied | `cube-pickup-color_20260809_183224` | 50 | 红、橙、黄、蓝、紫五色示教；绿色用于评测 |
+| Clean | `cube-pickup-clean` | 50 | 固定位置正常示教 |
+| Randomized | `cube-pickup-randomized` | 50 | 10 个训练位置轮换 |
+| Recovery | `cube-pickup-recovery` | 50 | 包含主动释放与重新抓取 |
+| Color-varied | `cube-pickup-color` | 50 | 红、橙、黄、蓝、紫五色示教；绿色用于评测 |
 
-数据下载入口会解析并记录每个数据集的 Hub commit SHA，保证下载版本可追溯：
+数据下载入口会解析并记录统一 Dataset 仓库的 Hub commit SHA，以及各条件对应的子目录，保证下载版本可追溯：
 
 ```bash
 # 先查看下载计划
