@@ -418,7 +418,7 @@ calibration/
 
 ### 5.1 四组示教数据集
 
-真机实验使用 Clean、Randomized、Recovery、Color-varied 四组 LeRobotDataset，每组 50 条示教。数据集均包含 `meta/`、`data/`、`videos/`，并在下载后检查回合数、30 FPS、六维 action/state 及 overhead/wrist 双相机特征。
+真机实验使用你维护的 Hugging Face 数据集 [`giaobo/so101-smovla`](https://huggingface.co/datasets/giaobo/so101-smovla)，其中包含 Clean、Randomized、Recovery、Color-varied 四个子目录，每组 50 条示教。各子目录均按 LeRobotDataset 结构保存，并在下载后检查回合数、30 FPS、六维 action/state 及 overhead/wrist 双相机特征。
 
 | 数据条件 | 数据集 | 回合数 | 用途 |
 |---|---|---:|---|
@@ -440,7 +440,7 @@ python scripts/real/download_study_datasets.py
 python scripts/real/download_study_datasets.py --condition clean recovery
 ```
 
-默认保存至 `data/real_demonstrations/{clean,randomized,recovery,color}/`，并生成 `download_manifest.json`。数据文件较大，保留在本地忽略目录，不提交到 GitHub。安装下载依赖：
+脚本从同一个仓库 `giaobo/so101-smovla` 下载对应子目录，默认保存至 `data/real_demonstrations/{clean,randomized,recovery,color}/`，并生成 `download_manifest.json`，记录统一仓库 ID、commit SHA 和各子目录信息。数据文件较大，保留在本地忽略目录，不提交到 GitHub。安装下载依赖：
 
 ```bash
 python -m pip install -U huggingface_hub
@@ -516,7 +516,7 @@ python scripts/real/train_study.py \
 python scripts/real/train_study.py \
   --condition clean --seed 1000 \
   --dataset-root data/real_demonstrations/clean \
-  --repo-id Andresg324/cube-pickup-clean_20260809_105745 \
+  --repo-id giaobo/so101-smovla \
   --base-model /path/to/local/smolvla_base \
   --output outputs/train/real_clean_seed1000 \
   --rename-map '{"observation.images.overhead":"observation.images.camera1","observation.images.wrist":"observation.images.camera2"}' --execute
@@ -586,7 +586,9 @@ Baseline 与四组固定策略模型的训练和统一真机评测均已完成�
 
 ## 7. Hugging Face 数据管理
 
-项目同时支持纯本地离线管理与 Hugging Face Hub 云端同步：
+本项目的四组真机示教数据统一存放在 [Hugging Face Dataset：`giaobo/so101-smovla`](https://huggingface.co/datasets/giaobo/so101-smovla)，按 `cube-pickup-clean`、`cube-pickup-randomized`、`cube-pickup-recovery`、`cube-pickup-color` 四个子目录组织。下载脚本会从该仓库解析固定 commit SHA，再按条件下载并校验对应子目录。
+
+项目同时支持本地训练与 Hugging Face Hub 云端同步：
 
 - **本地训练与采集**：采集入口关闭 `dataset.push_to_hub`，训练入口关闭 `policy.push_to_hub`，训练进程使用 `HF_HUB_OFFLINE=1` 与 `TRANSFORMERS_OFFLINE=1`，数据和模型保存在本地 `data/`、`checkpoints/` 与 `outputs/` 目录。四组示教数据的首次下载仍需联网访问脚本中配置的数据集仓库。
 - **数据集上传**：使用 `scripts/hf/upload_hf.py` 同步自采真机数据集或微调权重：
