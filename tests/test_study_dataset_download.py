@@ -1,16 +1,25 @@
 import unittest
 
 from scripts.real.download_study_datasets import (
-    DATASETS,
+    DATASET_DIRS,
+    DATASET_REPO_ID,
     REQUIRED_FEATURES,
     validate_dataset_metadata,
 )
 
 
 class StudyDatasetDownloadTests(unittest.TestCase):
-    def test_only_four_registered_conditions_are_downloadable(self):
-        self.assertEqual(set(DATASETS), {"clean", "randomized", "recovery", "color"})
-        self.assertFalse(any("density" in repo_id.lower() for repo_id in DATASETS.values()))
+    def test_all_conditions_use_the_projects_single_dataset_repo(self):
+        self.assertEqual(DATASET_REPO_ID, "giaobo/so101-smovla")
+        self.assertEqual(
+            DATASET_DIRS,
+            {
+                "clean": "cube-pickup-clean",
+                "randomized": "cube-pickup-randomized",
+                "recovery": "cube-pickup-recovery",
+                "color": "cube-pickup-color",
+            },
+        )
 
     def test_expected_lerobot_schema_is_validated(self):
         metadata = {
