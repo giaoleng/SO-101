@@ -30,7 +30,7 @@ LeRobot 0.5.1 的合并工具会处理 Episode 重编号、视频和元数据。
 
 ## Full Fine-Tuning
 
-统一训练种子 1000、10,000 steps、batch size 32，每隔 2,000 steps 保存 Checkpoint。当前不配置 LoRA；Optimizer、Learning Rate、Warmup 由实际 LeRobot 策略配置决定，不擅自写入未经核实的数值。
+统一训练种子 1000、10,000 steps、batch size 32，每隔 2,000 steps 保存 Checkpoint。训练命令显式设置 `freeze_vision_encoder=false`、`train_expert_only=false`、`train_state_proj=true`，不使用 LoRA。LeRobot 0.5.1 默认预设为 AdamW、Learning Rate `1e-4`、Warmup `1000 steps`，实际生效值请核对 Base Model 配置及训练日志。
 
 ```bash
 # Baseline，先检查命令
@@ -69,7 +69,7 @@ python scripts/real/summarize_study.py outputs/real/eval_*.jsonl \
   --csv outputs/real/study_summary.csv --strict
 ```
 
-模型推理由 `RealPolicyRunner` 加载真实 Checkpoint，调用 `policy.select_action(...)`。目前配置的控制频率为 20 Hz，最长回合 45 秒，最多 900 个控制步，推理超时 1 秒。Flow Sampling Steps、Sampler 和 Action Chunk 由对应 Checkpoint 的实际配置确定，评测脚本不覆盖。
+模型推理由 `RealPolicyRunner` 加载真实 Checkpoint，调用 `policy.select_action(...)`。目前配置的控制频率为 20 Hz，最长回合 45 秒，最多 900 个控制步，推理超时 1 秒。LeRobot 0.5.1 默认预设 `num_steps=10`、`chunk_size=50`、`n_action_steps=50`，实际数值由加载的 Checkpoint 配置决定；评测脚本不覆盖。
 
 ## 结果口径
 
