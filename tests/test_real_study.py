@@ -1,4 +1,4 @@
-"""Offline regression coverage for the five-model real SmolVLA study."""
+"""Offline regression coverage for the baseline/improved real SmolVLA study."""
 import json
 import tempfile
 from pathlib import Path
@@ -44,7 +44,7 @@ class RealStudyProtocol(unittest.TestCase):
         self.assertEqual({r['cube_color'] for r in evaluation_plan('different_object')}, {'green'})
 
     def test_matched_training_budget_and_dataset_contract(self):
-        self.assertEqual(MODEL_CONDITIONS, ('baseline', *TRAIN_CONDITIONS))
+        self.assertEqual(MODEL_CONDITIONS, ('baseline', 'improved'))
         for condition in MODEL_CONDITIONS:
             cmd = training_command(condition=condition, seed=1000, repo_id='local/ds',
                                    dataset_root=Path('/tmp/ds'), base_model=Path('/tmp/base'),
@@ -59,12 +59,16 @@ class RealStudyProtocol(unittest.TestCase):
                     'observation.state': {'shape': [6]},
                     'observation.images.overhead': {'shape': [480, 640, 3]}}}
             (meta / 'info.json').write_text(json.dumps(base))
-            self.assertEqual(check_dataset(Path(tmp), condition='clean')['total_episodes'], 50)
+            with self.assertRaises(ValueError):
+                check_dataset(Path(tmp), condition='improved')
+            base['total_episodes'] = 200
+            (meta / 'info.json').write_text(json.dumps(base))
+            self.assertEqual(check_dataset(Path(tmp), condition='improved')['total_episodes'], 200)
             base['total_episodes'] = 12
             (meta / 'info.json').write_text(json.dumps(base))
             self.assertEqual(check_dataset(Path(tmp), condition='baseline')['total_episodes'], 12)
             with self.assertRaises(ValueError):
-                check_dataset(Path(tmp), condition='clean')
+                check_dataset(Path(tmp), condition='improved')
             base['total_episodes'] = 0
             (meta / 'info.json').write_text(json.dumps(base))
             with self.assertRaises(ValueError):
@@ -82,7 +86,7 @@ class RealStudyProtocol(unittest.TestCase):
                            front_idx=1, wrist_idx=1)
 
     def test_summary_rejects_duplicates_and_uses_real_denominators(self):
-        cases = [dict(train_condition='clean', seed=1000, eval_cell='in_distribution',
+        cases = [dict(train_condition='improved', seed=1000, eval_cell='in_distribution',
                       episode=1, success=True, completed=True, started=True, reached=True,
                       dropped=False),
                  dict(train_condition='clean', seed=1000, eval_cell='in_distribution',
@@ -99,7 +103,7 @@ class RealStudyProtocol(unittest.TestCase):
         with self.assertRaises(ValueError):
             summarize(cases, strict=True)
 
-    def test_strict_summary_accepts_exact_five_model_100_rollout_protocol(self):
+    def test_strict_summary_accepts_exact_two_model_100_rollout_protocol(self):
         cases = []
         for condition in MODEL_CONDITIONS:
             for cell, count in SCORED_EPISODES.items():
@@ -111,7 +115,7 @@ class RealStudyProtocol(unittest.TestCase):
         result = summarize(cases, strict=True)
         self.assertEqual(len(result), len(MODEL_CONDITIONS) * (len(EVAL_CELLS) + 1))
         totals = [row for row in result if row['eval_cell'] == 'all_cells']
-        self.assertEqual(len(totals), 5)
+        self.assertEqual(len(totals), 2)
         self.assertTrue(all(row['episodes'] == TOTAL_SCORED_EPISODES == 100 for row in totals))
         id_rows = [row for row in result if row['eval_cell'] == 'in_distribution']
         self.assertTrue(all(row['episodes'] == 40 for row in id_rows))
@@ -139,7 +143,7 @@ class RealStudyProtocol(unittest.TestCase):
         self.assertEqual(set(mapped), {'camera1', 'camera2'})
 
     def test_warmup_and_incomplete_are_not_scored(self):
-        cases = [{'train_condition': 'clean', 'seed': 1000, 'eval_cell': 'in_distribution',
+        cases = [{'train_condition': 'improved', 'seed': 1000, 'eval_cell': 'in_distribution',
                   'episode': 0, 'completed': False, 'is_warmup': True},
                  {'train_condition': 'clean', 'seed': 1000, 'eval_cell': 'in_distribution',
                   'episode': 1, 'completed': True, 'success': True}]
