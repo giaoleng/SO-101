@@ -35,6 +35,8 @@ def training_command(*, condition: str, seed: int, repo_id: str, dataset_root: P
         f'--dataset.root={dataset_root}', f'--policy.path={base_model}',
         f'--policy.device={device}', '--policy.push_to_hub=false',
         '--steps=10000', '--batch_size=32', '--save_freq=2000',
+        '--policy.freeze_vision_encoder=false', '--policy.train_expert_only=false',
+        '--policy.train_state_proj=true',
         f'--seed={seed}', f'--output_dir={output}',
         f'--job_name=real_smolvla_{condition}_seed{seed}',
     ]
@@ -103,6 +105,11 @@ def main(argv=None):
     checkpoint = args.output / 'checkpoints' / '010000' / 'pretrained_model'
     if not (checkpoint / 'config.json').is_file():
         raise FileNotFoundError(f'Expected final checkpoint missing: {checkpoint}')
+    trained_config = json.loads((checkpoint / 'config.json').read_text(encoding='utf-8'))
+    if (trained_config.get('freeze_vision_encoder') is not False or
+            trained_config.get('train_expert_only') is not False or
+            trained_config.get('train_state_proj') is not True):
+        raise ValueError('Checkpoint configuration does not confirm full-parameter training flags')
     # Package feature schema with the same image rename map used at training.
     snapshot = dict(info)
     features = dict(info['features'])
@@ -126,7 +133,9 @@ def main(argv=None):
                 'output_dir': str(args.output.resolve()), 'checkpoint_path': str(checkpoint.resolve()), 'model_sha256': model_sha256,
                 'demonstrations': info['total_episodes'], 'steps': 10000, 'batch_size': 32,
                 'save_freq': 2000, 'rename_map': rename,
-                'finetuning_method': 'full', 'dataset_composition': ('four_conditions_merged' if args.condition == IMPROVED_CONDITION else 'original_baseline')}
+                'finetuning_method': 'full', 'freeze_vision_encoder': False,
+                'train_expert_only': False, 'train_state_proj': True,
+                'dataset_composition': ('four_conditions_merged' if args.condition == IMPROVED_CONDITION else 'original_baseline')}
     with (args.output / 'study_manifest.json').open('x', encoding='utf-8') as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)
 
