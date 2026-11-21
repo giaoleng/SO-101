@@ -20,6 +20,7 @@ import subprocess
 
 from scripts.real.study_protocol import (
     BASELINE_CONDITION, MODEL_CONDITIONS, TRAINING_SEEDS, DEMOS_PER_CONDITION,
+    TRAIN_CONDITIONS, IMPROVED_CONDITION,
 )
 
 
@@ -49,8 +50,8 @@ def check_dataset(root: Path, condition: str = 'clean'):
     n = info.get('total_episodes')
     if type(n) is not int or n < 1:
         raise ValueError(f'{root}: expected at least one expert demonstration, got {n}')
-    if condition != BASELINE_CONDITION and n != DEMOS_PER_CONDITION:
-        raise ValueError(f'{root}: expected exactly {DEMOS_PER_CONDITION} expert demonstrations, got {n}')
+    if condition == IMPROVED_CONDITION and n != DEMOS_PER_CONDITION * len(TRAIN_CONDITIONS):
+        raise ValueError(f'{root}: improved requires all {DEMOS_PER_CONDITION * len(TRAIN_CONDITIONS)} merged demonstrations, got {n}')
     features = info.get('features', {})
     for key in ('action', 'observation.state'):
         if features.get(key, {}).get('shape') != [6]:
@@ -64,7 +65,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--condition', required=True, choices=MODEL_CONDITIONS)
     parser.add_argument('--seed', required=True, type=int, choices=TRAINING_SEEDS)
-    parser.add_argument('--dataset-root', required=True, type=Path)
+    parser.add_argument('--dataset-root', required=True, type=Path,
+                        help='Baseline dataset or the 200-episode merged Improved dataset')
     parser.add_argument('--repo-id', required=True)
     parser.add_argument('--base-model', required=True, type=Path, help='Local SmolVLA base checkpoint')
     parser.add_argument('--output', required=True, type=Path)
@@ -123,7 +125,8 @@ def main(argv=None):
                 'dataset_root': str(args.dataset_root.resolve()), 'base_model': str(args.base_model.resolve()),
                 'output_dir': str(args.output.resolve()), 'checkpoint_path': str(checkpoint.resolve()), 'model_sha256': model_sha256,
                 'demonstrations': info['total_episodes'], 'steps': 10000, 'batch_size': 32,
-                'save_freq': 2000, 'rename_map': rename}
+                'save_freq': 2000, 'rename_map': rename,
+                'finetuning_method': 'full', 'dataset_composition': ('four_conditions_merged' if args.condition == IMPROVED_CONDITION else 'original_baseline')}
     with (args.output / 'study_manifest.json').open('x', encoding='utf-8') as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)
 
