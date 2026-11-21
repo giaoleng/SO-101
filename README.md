@@ -184,7 +184,10 @@ Reach / No Motion / Recovery
 Clean / Randomized / Recovery / Color-varied
         │
         ▼
-SmolVLA 微调训练
+合并 LeRobotDataset（Improved）
+        │
+        ▼
+Baseline / Improved SmolVLA Full Fine-Tuning
         │
         ▼
 统一真机评测
@@ -193,7 +196,7 @@ SmolVLA 微调训练
 比较整体成功率与各类失败表现
 ```
 
-> **实现状态**：仓库提供四种固定策略的采集计划、训练、真机评测和离线汇总入口。数据按预先设定的条件由操作者遥操作采集；不增加自动失败触发、在线专家接管或自动数据聚合机制。
+> **实现状态**：仓库提供四种固定策略的采集计划、增强数据集合并、两模型训练、真机评测和离线汇总入口。数据按预先设定的条件由操作者遥操作采集；不增加自动失败触发、在线专家接管或自动数据聚合机制。
 
 ---
 
@@ -472,6 +475,8 @@ python scripts/real/download_study_datasets.py --condition clean recovery
 python -m pip install -U huggingface_hub
 ```
 
+**ID / OOD 划分：** 训练使用四组示教数据，绿色 Cube 在训练集完全不出现。真机正式评测每组模型 ID 40 次（T6、红色方块、标准光照），OOD 共 60 次：新位置、低光照、绿色方块及干扰物四项各 15 次。ID:OOD = **40:60** 是评测比例，不是训练集中的 ID:OOD 采样比例。
+
 训练时将数据集的 `observation.images.overhead`、`observation.images.wrist` 映射到策略输入的 `camera1`、`camera2`；真机推理时使用 front / wrist 两路相机。相机名称、分辨率、FPS 和特征映射必须与训练配置一致。
 
 <a id="real-controls"></a>
@@ -488,7 +493,7 @@ python -m pip install -U huggingface_hub
 
 ### 4.4 根据失败模式组织四组固定策略示教数据
 
-本项目实际采用四种固定示教策略：**Clean、Randomized、Recovery、Color-varied**。四组数据分别用于训练 SmolVLA，并在统一测试条件下比较不同示教数据条件对任务成功率和失败行为的影响。
+本项目实际采用四种固定示教策略：**Clean、Randomized、Recovery、Color-varied**。四组数据合并为 Improved 的增强训练集，与原始 Baseline 示教数据构成两组对照。
 
 四组策略的具体数据组成及其与失败模式的对应关系已在本节前面的「根据失败模式组织固定策略示教数据」表中汇总。这里保留实际采集计划与运行命令，便于执行时查阅。
 
