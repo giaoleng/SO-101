@@ -568,7 +568,7 @@ python scripts/real/train_study.py \
   --output outputs/train/real_improved_seed1000 --dry-run
 ```
 
-检查 `--dry-run` 输出后，去掉该参数或改为 `--execute` 即会真正启动训练。运行前需准备本地预训练权重和对应数据集。默认命令保留 LeRobot 0.5.1 的 Optimizer、Learning Rate、Warmup 等策略配置，**这里不猜测未由 Checkpoint 和实际训练配置核实的数值**。全参数微调不需要 LoRA rank、alpha 或 target modules；训练/冻结的实际参数状态以真实训练配置为准。
+检查 `--dry-run` 输出后，去掉该参数或改为 `--execute` 即会真正启动训练。运行前需准备本地预训练权重和对应数据集。训练命令显式设置 `freeze_vision_encoder=false`、`train_expert_only=false`、`train_state_proj=true`，从而不沿用 LeRobot 0.5.1 默认的冻结视觉编码器与仅训练 Action Expert 选项。该配置不启用 LoRA。LeRobot 0.5.1 **默认预设**包括 AdamW、Learning Rate `1e-4`、Warmup `1000 steps`；这些数值需与本机 Base Model 的最终有效配置核对，不能直接当作已经执行过的训练日志。脚本会在训练后检查 Checkpoint 保存的冻结配置。
 
 训练完成后输出 `study_manifest.json`，记录条件、种子、数据来源、模型 SHA-256、训练步数和相机特征映射。**本节是两模型统一训练入口的复现方案，不代表之前独立训练的四个策略模型已经自动合并成 Improved 模型。**
 
@@ -586,7 +586,7 @@ Baseline 与 Improved 使用相同的真机环境、相机与复位方式，每�
 | OOD: Different object | 15 | **绿色 Cube**，仅用于 OOD |
 | OOD: Distractors | 15 | T6，存在干扰物 |
 
-推理通过 `RealPolicyRunner` 调用 `policy.select_action(...)`；当前控制参数来自 `configs/real/so101.yaml`：**20 Hz 控制频率、45 秒单回合上限、最多 900 步、推理超时 1 秒**。相机采集为 640×480、30 FPS。Flow Sampling Steps、Sampler 和 Action Chunk 参数**由实际 SmolVLA Checkpoint 配置与 LeRobot 实现确定**，项目评测入口没有强制覆盖这些值，不能将它们写成虚构的固定参数。
+推理通过 `RealPolicyRunner` 调用 `policy.select_action(...)`；当前控制参数来自 `configs/real/so101.yaml`：**20 Hz 控制频率、45 秒单回合上限、最多 900 步、推理超时 1 秒**。相机采集为 640×480、30 FPS。LeRobot 0.5.1 的 SmolVLA **默认预设**为 Flow Sampling `num_steps=10`、Action Chunk `chunk_size=50`、`n_action_steps=50`，采样循环采用固定时间步的数值积分；实际生效数值仍由加载的 Checkpoint 配置决定。本项目的评测入口没有额外覆盖这些参数。
 
 ```bash
 # 先预览 ID 测试计划
