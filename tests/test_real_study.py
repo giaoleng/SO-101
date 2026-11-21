@@ -52,6 +52,9 @@ class RealStudyProtocol(unittest.TestCase):
             self.assertIn('--seed=1000', cmd)
             self.assertIn('--steps=10000', cmd)
             self.assertIn('--batch_size=32', cmd)
+            self.assertIn('--policy.freeze_vision_encoder=false', cmd)
+            self.assertIn('--policy.train_expert_only=false', cmd)
+            self.assertIn('--policy.train_state_proj=true', cmd)
         with tempfile.TemporaryDirectory() as tmp:
             meta = Path(tmp) / 'meta'
             meta.mkdir()
