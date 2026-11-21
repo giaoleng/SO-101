@@ -89,7 +89,7 @@ class RealStudyProtocol(unittest.TestCase):
         cases = [dict(train_condition='improved', seed=1000, eval_cell='in_distribution',
                       episode=1, success=True, completed=True, started=True, reached=True,
                       dropped=False),
-                 dict(train_condition='clean', seed=1000, eval_cell='in_distribution',
+                 dict(train_condition='improved', seed=1000, eval_cell='in_distribution',
                       episode=2, success=False, completed=True, started=False,
                       reached=False, dropped=True, regrasped=False)]
         totals = summarize(cases)
@@ -145,7 +145,7 @@ class RealStudyProtocol(unittest.TestCase):
     def test_warmup_and_incomplete_are_not_scored(self):
         cases = [{'train_condition': 'improved', 'seed': 1000, 'eval_cell': 'in_distribution',
                   'episode': 0, 'completed': False, 'is_warmup': True},
-                 {'train_condition': 'clean', 'seed': 1000, 'eval_cell': 'in_distribution',
+                 {'train_condition': 'improved', 'seed': 1000, 'eval_cell': 'in_distribution',
                   'episode': 1, 'completed': True, 'success': True}]
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp) / 'run.jsonl'
@@ -164,12 +164,12 @@ class RealStudyProtocol(unittest.TestCase):
                        '--dataset-root', '/nonexistent/study_clean',
                        '--follower-port', '/dev/ttyACM0', '--leader-port', '/dev/ttyACM1',
                        '--front-idx', '0', '--wrist-idx', '1']
-        train_args = ['--condition', 'clean', '--seed', '1000',
+        train_args = ['--condition', 'improved', '--seed', '1000',
                       '--dataset-root', '/nonexistent/study_clean',
                       '--repo-id', 'local/study_clean',
                       '--base-model', '/nonexistent/smolvla_base',
                       '--output', '/nonexistent/study_train']
-        eval_args = ['--condition', 'clean', '--seed', '1000', '--cell', 'new_positions',
+        eval_args = ['--condition', 'improved', '--seed', '1000', '--cell', 'new_positions',
                      '--checkpoint', '/nonexistent/pretrained_model',
                      '--training-manifest', '/nonexistent/study_manifest.json',
                      '--output', '/nonexistent/results.jsonl']
